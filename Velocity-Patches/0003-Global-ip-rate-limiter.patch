@@ -1,0 +1,435 @@
+From e945662fc11f228aabf3f334b10e3d37d65d6586 Mon Sep 17 00:00:00 2001
+From: Leymooo <vjatseslav.maspanov@gmail.com>
+Date: Sat, 3 Apr 2021 15:42:27 +0300
+Subject: [PATCH] Global ip rate limiter
+
+
+diff --git a/api/src/main/java/com/velocitypowered/api/proxy/config/ProxyConfig.java b/api/src/main/java/com/velocitypowered/api/proxy/config/ProxyConfig.java
+index 0fa124f7..eaf0ff42 100644
+--- a/api/src/main/java/com/velocitypowered/api/proxy/config/ProxyConfig.java
++++ b/api/src/main/java/com/velocitypowered/api/proxy/config/ProxyConfig.java
+@@ -130,6 +130,13 @@ public interface ProxyConfig {
+    */
+   int getLoginRatelimit();
+ 
++  /**
++   * Get the limit for how many times a player must login before rate limit will work.
++   *
++   * @return the max join attempts before rate limiting
++   */
++  int getLoginRatelimitAttempts();
++
+   /**
+    * Get the proxy favicon shown in the tablist.
+    *
+diff --git a/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java b/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java
+index c7529ab3..8cf5adea 100644
+--- a/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java
++++ b/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java
+@@ -221,7 +221,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
+       servers.register(new ServerInfo(entry.getKey(), AddressUtil.parseAddress(entry.getValue())));
+     }
+ 
+-    ipAttemptLimiter = Ratelimiters.createWithMilliseconds(configuration.getLoginRatelimit());
++    ipAttemptLimiter = Ratelimiters.createWithMilliseconds(configuration.getLoginRatelimit(),
++        configuration.getLoginRatelimitAttempts()); //BotFilter - global rate limiter
+     loadPlugins();
+ 
+     // Go ahead and fire the proxy initialization event. We block since plugins should have a chance
+@@ -395,7 +396,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
+           newConfiguration.getQueryPort());
+     }
+ 
+-    ipAttemptLimiter = Ratelimiters.createWithMilliseconds(newConfiguration.getLoginRatelimit());
++    ipAttemptLimiter = Ratelimiters.createWithMilliseconds(newConfiguration.getLoginRatelimit(),
++        newConfiguration.getLoginRatelimitAttempts()); //BotFilter - global rate limiter
+     this.configuration = newConfiguration;
+     eventManager.fireAndForget(new ProxyReloadEvent());
+     return true;
+@@ -522,7 +524,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
+     return !(connectionsByName.containsKey(lowerName)
+         || connectionsByUuid.containsKey(connection.getUniqueId()));
+   }
+-  
++
+   /**
+    * Attempts to register the {@code connection} with the proxy.
+    * @param connection the connection to register
+diff --git a/proxy/src/main/java/com/velocitypowered/proxy/config/VelocityConfiguration.java b/proxy/src/main/java/com/velocitypowered/proxy/config/VelocityConfiguration.java
+index e937c43b..47c304ed 100644
+--- a/proxy/src/main/java/com/velocitypowered/proxy/config/VelocityConfiguration.java
++++ b/proxy/src/main/java/com/velocitypowered/proxy/config/VelocityConfiguration.java
+@@ -17,9 +17,6 @@
+ 
+ package com.velocitypowered.proxy.config;
+ 
+-import com.electronwill.nightconfig.core.CommentedConfig;
+-import com.electronwill.nightconfig.core.file.CommentedFileConfig;
+-import com.electronwill.nightconfig.toml.TomlFormat;
+ import com.google.common.base.MoreObjects;
+ import com.google.common.collect.ImmutableList;
+ import com.google.common.collect.ImmutableMap;
+@@ -28,16 +25,12 @@ import com.velocitypowered.api.proxy.config.ProxyConfig;
+ import com.velocitypowered.api.util.Favicon;
+ import com.velocitypowered.proxy.util.AddressUtil;
+ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+-import java.io.File;
+ import java.io.IOException;
+-import java.io.InputStream;
+ import java.net.InetSocketAddress;
+-import java.net.URL;
+ import java.nio.charset.StandardCharsets;
+ import java.nio.file.Files;
+ import java.nio.file.Path;
+ import java.nio.file.Paths;
+-import java.nio.file.StandardCopyOption;
+ import java.security.SecureRandom;
+ import java.util.List;
+ import java.util.Map;
+@@ -71,7 +64,7 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
+ 
+   @Expose @Key("config-version") @Final
+   @Comment("Config version. Do not change this")
+-  private String configVesion = "1.0";
++  private String configVesion = "1.1";
+ 
+   @Expose @Comment("What port should the proxy be bound to? By default,"
+       + " we'll bind to all addresses on port 25565.")
+@@ -361,6 +354,12 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
+     return advanced.getLoginRatelimit();
+   }
+ 
++  //BotFilter - global rate limiter
++  @Override
++  public int getLoginRatelimitAttempts() {
++    return advanced.getLoginRatelimitAttempts();
++  }
++
+   @Override
+   public Optional<Favicon> getFavicon() {
+     return Optional.ofNullable(favicon);
+@@ -450,11 +449,17 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
+         .build();
+ 
+     boolean exists = path.toFile().exists();
+-    if (!configuration.load() && path.toFile().exists()) {
++
++    if (!configuration.load() && exists) {
+       throw new RuntimeException("Failed to load config");
+     }
+     if (!exists) {
+       configuration.loaded();
++    } else {
++      String version = configuration.getConfigurationProvider().get("config-version");
++      if (!configuration.configVesion.equals(version)) {
++        logger.info("Please check config. New settings were added");
++      }
+     }
+     configuration.save();
+     return configuration;
+@@ -475,7 +480,6 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
+   }
+ 
+   @Getter
+-  @Setter
+   @ToString
+   @NoArgsConstructor(access = AccessLevel.PRIVATE)
+   private static class Servers implements ConfigurationSection {
+@@ -498,7 +502,6 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
+   }
+ 
+   @Getter
+-  @Setter
+   @ToString
+   @NoArgsConstructor(access = AccessLevel.PRIVATE)
+   private static class Advanced implements ConfigurationSection {
+@@ -518,6 +521,10 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
+         "By default, this is three seconds. Disable this by setting this to 0."})
+     private int loginRatelimit = 3000;
+ 
++    @Expose @Key("login-ratelimit-attempts")
++    @Comment("How many attempts are allowed before rate limiting?")
++    private int loginRatelimitAttempts = 2; //BotFilter - global rate limiter
++
+     @Expose @Key("connection-timeout")
+     @Comment("Specify a custom timeout for connection timeouts here. The default is five seconds.")
+     private int connectionTimeout = 5000;
+@@ -579,7 +586,6 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
+ 
+   }
+ 
+-
+   public static class Messages implements ConfigurationSection {
+ 
+     @Key("kick-prefix") @Comment({"Prefix when the player gets kicked from a server.",
+diff --git a/proxy/src/main/java/com/velocitypowered/proxy/connection/client/HandshakeSessionHandler.java b/proxy/src/main/java/com/velocitypowered/proxy/connection/client/HandshakeSessionHandler.java
+index 2ce8f8db..c956b120 100644
+--- a/proxy/src/main/java/com/velocitypowered/proxy/connection/client/HandshakeSessionHandler.java
++++ b/proxy/src/main/java/com/velocitypowered/proxy/connection/client/HandshakeSessionHandler.java
+@@ -122,11 +122,15 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
+       return;
+     }
+ 
++    //BotFilter start - global rate limiter
++    /*
+     InetAddress address = ((InetSocketAddress) connection.getRemoteAddress()).getAddress();
+     if (!server.getIpAttemptLimiter().attempt(address)) {
+       ic.disconnectQuietly(Component.text("You are logging in too fast, try again later."));
+       return;
+     }
++     */
++    //BotFilter end - global rate limiter
+ 
+     connection.setType(getHandshakeConnectionType(handshake));
+ 
+diff --git a/proxy/src/main/java/com/velocitypowered/proxy/connection/client/StatusSessionHandler.java b/proxy/src/main/java/com/velocitypowered/proxy/connection/client/StatusSessionHandler.java
+index d17a419d..08f9d5d0 100644
+--- a/proxy/src/main/java/com/velocitypowered/proxy/connection/client/StatusSessionHandler.java
++++ b/proxy/src/main/java/com/velocitypowered/proxy/connection/client/StatusSessionHandler.java
+@@ -213,6 +213,9 @@ public class StatusSessionHandler implements MinecraftSessionHandler {
+               VelocityServer.getPingGsonInstance(connection.getProtocolVersion())
+                   .toJson(event.getPing(), json);
+               connection.write(new StatusResponse(json));
++              server.getIpAttemptLimiter()
++                  //BotFilter - global rate limiter
++                  .unthrottle(((InetSocketAddress)connection.getRemoteAddress()).getAddress());
+             },
+             connection.eventLoop())
+         .exceptionally((ex) -> {
+diff --git a/proxy/src/main/java/com/velocitypowered/proxy/network/ServerChannelInitializer.java b/proxy/src/main/java/com/velocitypowered/proxy/network/ServerChannelInitializer.java
+index 2c27b3fb..ff18ddc6 100644
+--- a/proxy/src/main/java/com/velocitypowered/proxy/network/ServerChannelInitializer.java
++++ b/proxy/src/main/java/com/velocitypowered/proxy/network/ServerChannelInitializer.java
+@@ -39,6 +39,7 @@ import io.netty.channel.Channel;
+ import io.netty.channel.ChannelInitializer;
+ import io.netty.handler.codec.haproxy.HAProxyMessageDecoder;
+ import io.netty.handler.timeout.ReadTimeoutHandler;
++import java.net.InetSocketAddress;
+ import java.util.concurrent.TimeUnit;
+ 
+ @SuppressWarnings("WeakerAccess")
+@@ -52,6 +53,16 @@ public class ServerChannelInitializer extends ChannelInitializer<Channel> {
+ 
+   @Override
+   protected void initChannel(final Channel ch) {
++
++    //BotFilter start - global rate limiter
++    boolean isProxyProtocol = this.server.getConfiguration().isProxyProtocol();
++    if (!isProxyProtocol && !server.getIpAttemptLimiter()
++        .attempt(((InetSocketAddress)ch.remoteAddress()).getAddress())) {
++      ch.close();
++      return;
++    }
++    //BotFilter end
++
+     ch.pipeline()
+         .addLast(READ_TIMEOUT,
+             new ReadTimeoutHandler(this.server.getConfiguration().getReadTimeout(),
+@@ -67,7 +78,7 @@ public class ServerChannelInitializer extends ChannelInitializer<Channel> {
+     connection.setSessionHandler(new HandshakeSessionHandler(connection, this.server));
+     ch.pipeline().addLast(Connections.HANDLER, connection);
+ 
+-    if (this.server.getConfiguration().isProxyProtocol()) {
++    if (isProxyProtocol) { //BotFilter - reuse variable
+       ch.pipeline().addFirst(new HAProxyMessageDecoder());
+     }
+   }
+diff --git a/proxy/src/main/java/com/velocitypowered/proxy/util/ratelimit/GuavaCacheRatelimiter.java b/proxy/src/main/java/com/velocitypowered/proxy/util/ratelimit/GuavaCacheRatelimiter.java
+index 0c1976be..f0b73ee1 100644
+--- a/proxy/src/main/java/com/velocitypowered/proxy/util/ratelimit/GuavaCacheRatelimiter.java
++++ b/proxy/src/main/java/com/velocitypowered/proxy/util/ratelimit/GuavaCacheRatelimiter.java
+@@ -22,32 +22,44 @@ import com.google.common.base.Preconditions;
+ import com.google.common.base.Ticker;
+ import com.google.common.cache.Cache;
+ import com.google.common.cache.CacheBuilder;
++import com.google.common.cache.CacheLoader;
++import com.google.common.cache.LoadingCache;
+ import java.net.InetAddress;
+-import java.util.concurrent.ExecutionException;
+ import java.util.concurrent.TimeUnit;
++import java.util.concurrent.atomic.AtomicInteger;
++import org.jetbrains.annotations.NotNull;
+ 
+ /**
+  * A simple rate-limiter based on a Guava {@link Cache}.
+  */
+ public class GuavaCacheRatelimiter implements Ratelimiter {
+ 
+-  private final Cache<InetAddress, Long> expiringCache;
++  private final LoadingCache<InetAddress, AtomicInteger> cache;
+   private final long timeoutNanos;
++  private final int maxAttempts;
+ 
+-  GuavaCacheRatelimiter(long time, TimeUnit unit) {
+-    this(time, unit, Ticker.systemTicker());
++  //BotFilter - global rate limiter
++  GuavaCacheRatelimiter(long time, int maxAttempts, TimeUnit unit) {
++    this(time, maxAttempts, unit, Ticker.systemTicker());
+   }
+ 
++  //BotFilter - global rate limiter
+   @VisibleForTesting
+-  GuavaCacheRatelimiter(long time, TimeUnit unit, Ticker ticker) {
++  GuavaCacheRatelimiter(long time, int maxAttempts, TimeUnit unit, Ticker ticker) {
+     Preconditions.checkNotNull(unit, "unit");
+     Preconditions.checkNotNull(ticker, "ticker");
+     this.timeoutNanos = unit.toNanos(time);
+-    this.expiringCache = CacheBuilder.newBuilder()
++    this.maxAttempts = maxAttempts;
++    this.cache = CacheBuilder.newBuilder()
+         .ticker(ticker)
+         .concurrencyLevel(Runtime.getRuntime().availableProcessors())
+         .expireAfterWrite(time, unit)
+-        .build();
++        .build(new CacheLoader<InetAddress, AtomicInteger>() {
++          @Override
++          public AtomicInteger load(@NotNull InetAddress address) {
++            return new AtomicInteger();
++          }
++        });
+   }
+ 
+   /**
+@@ -59,14 +71,22 @@ public class GuavaCacheRatelimiter implements Ratelimiter {
+   @Override
+   public boolean attempt(InetAddress address) {
+     Preconditions.checkNotNull(address, "address");
+-    long expectedNewValue = System.nanoTime() + timeoutNanos;
+-    long last;
+-    try {
+-      last = expiringCache.get(address, () -> expectedNewValue);
+-    } catch (ExecutionException e) {
+-      // It should be impossible for this to fail.
+-      throw new AssertionError(e);
++    //BotFilter - global rate limiter
++    AtomicInteger curr = cache.getUnchecked(address);
++    if (maxAttempts < curr.incrementAndGet()) {
++      cache.put(address, curr); // reset timer
++      return false;
++    }
++    return true;
++  }
++
++  //BotFilter - global rate limiter
++  @Override
++  public void unthrottle(InetAddress address) {
++    Preconditions.checkNotNull(address, "address");
++    AtomicInteger curr = cache.getIfPresent(address);
++    if (curr != null) {
++      curr.decrementAndGet();
+     }
+-    return expectedNewValue == last;
+   }
+ }
+diff --git a/proxy/src/main/java/com/velocitypowered/proxy/util/ratelimit/NoopCacheRatelimiter.java b/proxy/src/main/java/com/velocitypowered/proxy/util/ratelimit/NoopCacheRatelimiter.java
+index caf60286..46fa7155 100644
+--- a/proxy/src/main/java/com/velocitypowered/proxy/util/ratelimit/NoopCacheRatelimiter.java
++++ b/proxy/src/main/java/com/velocitypowered/proxy/util/ratelimit/NoopCacheRatelimiter.java
+@@ -29,4 +29,9 @@ enum NoopCacheRatelimiter implements Ratelimiter {
+   public boolean attempt(InetAddress address) {
+     return true;
+   }
++
++  //BotFilter - global rate limiter
++  @Override
++  public void unthrottle(InetAddress address) {
++  }
+ }
+diff --git a/proxy/src/main/java/com/velocitypowered/proxy/util/ratelimit/Ratelimiter.java b/proxy/src/main/java/com/velocitypowered/proxy/util/ratelimit/Ratelimiter.java
+index 08837091..677e0b56 100644
+--- a/proxy/src/main/java/com/velocitypowered/proxy/util/ratelimit/Ratelimiter.java
++++ b/proxy/src/main/java/com/velocitypowered/proxy/util/ratelimit/Ratelimiter.java
+@@ -30,4 +30,6 @@ public interface Ratelimiter {
+    * @return true if allowed, false if not
+    */
+   boolean attempt(InetAddress address);
++
++  void unthrottle(InetAddress address);
+ }
+diff --git a/proxy/src/main/java/com/velocitypowered/proxy/util/ratelimit/Ratelimiters.java b/proxy/src/main/java/com/velocitypowered/proxy/util/ratelimit/Ratelimiters.java
+index b9d7a293..4b05444a 100644
+--- a/proxy/src/main/java/com/velocitypowered/proxy/util/ratelimit/Ratelimiters.java
++++ b/proxy/src/main/java/com/velocitypowered/proxy/util/ratelimit/Ratelimiters.java
+@@ -24,8 +24,9 @@ public final class Ratelimiters {
+     throw new AssertionError();
+   }
+ 
+-  public static Ratelimiter createWithMilliseconds(long ms) {
+-    return ms <= 0 ? NoopCacheRatelimiter.INSTANCE : new GuavaCacheRatelimiter(ms,
+-        TimeUnit.MILLISECONDS);
++  //BotFilter - global rate limiter
++  public static Ratelimiter createWithMilliseconds(long ms, int attempts) {
++    return (ms <= 0 || attempts <= 0) ? NoopCacheRatelimiter.INSTANCE : new GuavaCacheRatelimiter(
++        ms, attempts,TimeUnit.MILLISECONDS);
+   }
+ }
+diff --git a/proxy/src/test/java/com/velocitypowered/proxy/util/ratelimit/GuavaCacheRatelimiterTest.java b/proxy/src/test/java/com/velocitypowered/proxy/util/ratelimit/GuavaCacheRatelimiterTest.java
+index 39f50e7f..d522f339 100644
+--- a/proxy/src/test/java/com/velocitypowered/proxy/util/ratelimit/GuavaCacheRatelimiterTest.java
++++ b/proxy/src/test/java/com/velocitypowered/proxy/util/ratelimit/GuavaCacheRatelimiterTest.java
+@@ -30,7 +30,13 @@ class GuavaCacheRatelimiterTest {
+ 
+   @Test
+   void attemptZero() {
+-    Ratelimiter noRatelimiter = new GuavaCacheRatelimiter(0, TimeUnit.MILLISECONDS);
++    Ratelimiter noRatelimiter = Ratelimiters.createWithMilliseconds(0, 0);
++    assertTrue(noRatelimiter.attempt(InetAddress.getLoopbackAddress()));
++    assertTrue(noRatelimiter.attempt(InetAddress.getLoopbackAddress()));
++    noRatelimiter = Ratelimiters.createWithMilliseconds(0, 2);
++    assertTrue(noRatelimiter.attempt(InetAddress.getLoopbackAddress()));
++    assertTrue(noRatelimiter.attempt(InetAddress.getLoopbackAddress()));
++    noRatelimiter = Ratelimiters.createWithMilliseconds(20, 0);
+     assertTrue(noRatelimiter.attempt(InetAddress.getLoopbackAddress()));
+     assertTrue(noRatelimiter.attempt(InetAddress.getLoopbackAddress()));
+   }
+@@ -45,11 +51,46 @@ class GuavaCacheRatelimiterTest {
+         return base + extra.get();
+       }
+     };
+-    Ratelimiter ratelimiter = new GuavaCacheRatelimiter(1000, TimeUnit.MILLISECONDS, testTicker);
++    Ratelimiter ratelimiter = new GuavaCacheRatelimiter(1000, 3, TimeUnit.MILLISECONDS, testTicker);
++    assertTrue(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
++    assertTrue(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
++    assertTrue(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
++    assertFalse(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
++    extra.addAndGet(TimeUnit.SECONDS.toNanos(2));
++    assertTrue(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
+     assertTrue(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
++    assertTrue(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
++    extra.addAndGet(TimeUnit.MILLISECONDS.toNanos(900));
+     assertFalse(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
+     extra.addAndGet(TimeUnit.SECONDS.toNanos(2));
+     assertTrue(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
+   }
+ 
++  @Test
++  void unthrottleTest() {
++    long base = System.nanoTime();
++    AtomicLong extra = new AtomicLong();
++    Ticker testTicker = new Ticker() {
++      @Override
++      public long read() {
++        return base + extra.get();
++      }
++    };
++    Ratelimiter ratelimiter = new GuavaCacheRatelimiter(1000, 3, TimeUnit.MILLISECONDS, testTicker);
++    assertTrue(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
++    ratelimiter.unthrottle(InetAddress.getLoopbackAddress());
++    assertTrue(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
++    ratelimiter.unthrottle(InetAddress.getLoopbackAddress());
++    assertTrue(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
++    ratelimiter.unthrottle(InetAddress.getLoopbackAddress());
++    assertTrue(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
++    ratelimiter.unthrottle(InetAddress.getLoopbackAddress());
++    assertTrue(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
++    ratelimiter.unthrottle(InetAddress.getLoopbackAddress());
++    assertTrue(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
++    assertTrue(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
++    assertTrue(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
++    assertFalse(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
++  }
++
+ }
+-- 
+2.29.2.windows.3
+

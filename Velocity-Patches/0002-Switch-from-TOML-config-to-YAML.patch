@@ -1,0 +1,977 @@
+From fb223e7a539710106da7eaef80600a91ced5a438 Mon Sep 17 00:00:00 2001
+From: Leymooo <vjatseslav.maspanov@gmail.com>
+Date: Sat, 3 Apr 2021 15:28:49 +0300
+Subject: [PATCH] Switch from TOML config to YAML
+
+
+diff --git a/build.gradle b/build.gradle
+index 9c0cdac3..2503a061 100644
+--- a/build.gradle
++++ b/build.gradle
+@@ -9,7 +9,7 @@ buildscript {
+ 
+ plugins {
+     id 'java'
+-    id "com.github.spotbugs" version "4.2.4" apply false
++    id "com.github.spotbugs" version "4.7.0" apply false
+     id 'org.cadixdev.licenser' version '0.5.1' apply false
+ }
+ 
+@@ -73,6 +73,9 @@ allprojects {
+     }
+ 
+     tasks.withType(com.github.spotbugs.snom.SpotBugsTask) {
++        effort = 'max'
++        reportLevel = 'high'
++
+         reports {
+             html {
+                 enabled = true
+diff --git a/proxy/build.gradle b/proxy/build.gradle
+index ebc6a162..e4e91469 100644
+--- a/proxy/build.gradle
++++ b/proxy/build.gradle
+@@ -98,6 +98,8 @@ dependencies {
+ 
+     testCompileOnly 'org.projectlombok:lombok:1.18.20'
+     testAnnotationProcessor 'org.projectlombok:lombok:1.18.20'
++
++    implementation 'ru.leymooo:AnnotatedYAMLConfiguration-standalone:1.1-SNAPSHOT' //BotFilter
+ }
+ 
+ test {
+diff --git a/proxy/src/main/java/com/velocitypowered/proxy/Metrics.java b/proxy/src/main/java/com/velocitypowered/proxy/Metrics.java
+index 64addd7a..0dc680cd 100644
+--- a/proxy/src/main/java/com/velocitypowered/proxy/Metrics.java
++++ b/proxy/src/main/java/com/velocitypowered/proxy/Metrics.java
+@@ -41,11 +41,11 @@ public class Metrics {
+ 
+   private MetricsBase metricsBase;
+ 
+-  private Metrics(Logger logger, int serviceId, boolean defaultEnabled) {
++  private Metrics(Logger logger, int serviceId) {
+     File configFile = Paths.get("plugins").resolve("bStats").resolve("config.txt").toFile();
+     MetricsConfig config;
+     try {
+-      config = new MetricsConfig(configFile, defaultEnabled);
++      config = new MetricsConfig(configFile, true);
+     } catch (IOException e) {
+       logger.error("Failed to create bStats config", e);
+       return;
+@@ -101,8 +101,8 @@ public class Metrics {
+ 
+     private static final Logger logger = LogManager.getLogger(Metrics.class);
+ 
+-    static void startMetrics(VelocityServer server, VelocityConfiguration.Metrics metricsConfig) {
+-      Metrics metrics = new Metrics(logger, 4752, metricsConfig.isEnabled());
++    static void startMetrics(VelocityServer server) {
++      Metrics metrics = new Metrics(logger, 4752);
+ 
+       metrics.addCustomChart(
+           new SingleLineChart("players", server::getPlayerCount)
+diff --git a/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java b/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java
+index 63b3b755..c7529ab3 100644
+--- a/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java
++++ b/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java
+@@ -243,13 +243,13 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
+       this.cm.queryBind(configuration.getBind().getHostString(), configuration.getQueryPort());
+     }
+ 
+-    Metrics.VelocityMetrics.startMetrics(this, configuration.getMetrics());
++    Metrics.VelocityMetrics.startMetrics(this);
+   }
+ 
+   @SuppressFBWarnings("DM_EXIT")
+   private void doStartupConfigLoad() {
+     try {
+-      Path configPath = Paths.get("velocity.toml");
++      Path configPath = Paths.get("velocity.yml"); //BotFilter YAML config
+       configuration = VelocityConfiguration.read(configPath);
+ 
+       if (!configuration.validate()) {
+@@ -259,7 +259,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
+         System.exit(1);
+       }
+     } catch (Exception e) {
+-      logger.error("Unable to read/load/save your velocity.toml. The server will shut down.", e);
++      logger.error("Unable to read/load/save your velocity.yml. The server will shut down.", e);
+       LogManager.shutdown();
+       System.exit(1);
+     }
+@@ -318,10 +318,10 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
+    * Reloads the proxy's configuration.
+    *
+    * @return {@code true} if successful, {@code false} if we can't read the configuration
+-   * @throws IOException if we can't read {@code velocity.toml}
++   * @throws IOException if we can't read {@code velocity.yml}
+    */
+   public boolean reloadConfiguration() throws IOException {
+-    Path configPath = Paths.get("velocity.toml");
++    Path configPath = Paths.get("velocity.yml");
+     VelocityConfiguration newConfiguration = VelocityConfiguration.read(configPath);
+ 
+     if (!newConfiguration.validate()) {
+diff --git a/proxy/src/main/java/com/velocitypowered/proxy/config/Comments.java b/proxy/src/main/java/com/velocitypowered/proxy/config/Comments.java
+new file mode 100644
+index 00000000..3e5a3a67
+--- /dev/null
++++ b/proxy/src/main/java/com/velocitypowered/proxy/config/Comments.java
+@@ -0,0 +1,84 @@
++/*
++ * Copyright (C) 2018 Velocity Contributors
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
++ */
++
++package com.velocitypowered.proxy.config;
++
++public enum Comments {
++
++  preventClientProxyConnections(
++      "If client's ISP/AS sent from this proxy is different from the one from Mojang's",
++      "authentication server, the player is kicked. This disallows some VPN and proxy",
++      "connections but is a weak form of protection. Only for online mode on"),
++
++  playerInfoForwardingMode("Should we forward IP addresses and other data to backend servers?",
++      "Available options:",
++      "- \"none\":        No forwarding will be done. All players will appear to be connecting",
++      "                 from the proxy and will have offline-mode UUIDs.",
++      "- \"legacy\":      Forward player IPs and UUIDs in a BungeeCord-compatible format. Use this",
++      "                 if you run servers using Minecraft 1.12 or lower.",
++      "- \"bungeeguard\": Forward player IPs and UUIDs in a format supported by the BungeeGuard",
++      "                 plugin. Use this if you run servers using Minecraft 1.12 or lower, and are",
++      "                 unable to implement network level firewalling (on a shared host).",
++      "- \"modern\":      Forward player IPs and UUIDs as part of the login process using",
++      "                 Velocity's native forwarding. Only applicable for Minecraft 1.13 or higher."
++  ),
++
++  announceForge(
++      "Announce whether or not your server supports Forge. If you run a modded server, we",
++      "suggest turning this on.",
++      "",
++      "If your network runs one modpack consistently, consider using ping-passthrough = \"mods\"",
++      "instead for a nicer display in the server list."),
++  pingPassthrough(
++      "Should Velocity pass server list ping requests to a backend server?",
++      "Available options:",
++      "- \"disabled\":    No pass-through will be done. The velocity.toml and server-icon.png",
++      "                 will determine the initial server list ping response.",
++      "- \"mods\":        Passes only the mod list from your backend server into the response.",
++      "                 The first server in your try list (or forced host) with a mod list will be",
++      "                 used. If no backend servers can be contacted, Velocity won't display any",
++      "                 mod information.",
++      "- \"description\": Uses the description and mod list from the backend server. The first",
++      "                 server in the try (or forced host) list that responds is used for the",
++      "                 description and mod list.",
++      "- \"all\":         Uses the backend server's response as the proxy response. The Velocity",
++      "                 configuration is used if no servers could be contacted."),
++
++  failoverOnUnexpectedServerDisconnect(
++      "By default, Velocity will attempt to gracefully"
++          + " handle situations where the user unexpectedly",
++      "loses connection to the server without an explicit"
++          + " disconnect message by attempting to fall the",
++      "user back, except in the case of read timeouts."
++          + " BungeeCord will disconnect the user instead. You",
++      "can disable this setting to use the BungeeCord behavior.");
++
++  private Object[] comment;
++
++  Comments(String comment) {
++    this.comment = new String[] {comment};
++  }
++
++  Comments(String... comment) {
++    this.comment = comment;
++  }
++
++  public String[] getComment() {
++    return (String[]) comment;
++  }
++
++}
+diff --git a/proxy/src/main/java/com/velocitypowered/proxy/config/VelocityConfiguration.java b/proxy/src/main/java/com/velocitypowered/proxy/config/VelocityConfiguration.java
+index f020b221..e937c43b 100644
+--- a/proxy/src/main/java/com/velocitypowered/proxy/config/VelocityConfiguration.java
++++ b/proxy/src/main/java/com/velocitypowered/proxy/config/VelocityConfiguration.java
+@@ -18,8 +18,6 @@
+ package com.velocitypowered.proxy.config;
+ 
+ import com.electronwill.nightconfig.core.CommentedConfig;
+-import com.electronwill.nightconfig.core.CommentedConfig.Entry;
+-import com.electronwill.nightconfig.core.UnmodifiableConfig;
+ import com.electronwill.nightconfig.core.file.CommentedFileConfig;
+ import com.electronwill.nightconfig.toml.TomlFormat;
+ import com.google.common.base.MoreObjects;
+@@ -29,7 +27,6 @@ import com.google.gson.annotations.Expose;
+ import com.velocitypowered.api.proxy.config.ProxyConfig;
+ import com.velocitypowered.api.util.Favicon;
+ import com.velocitypowered.proxy.util.AddressUtil;
+-
+ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+ import java.io.File;
+ import java.io.IOException;
+@@ -42,11 +39,15 @@ import java.nio.file.Path;
+ import java.nio.file.Paths;
+ import java.nio.file.StandardCopyOption;
+ import java.security.SecureRandom;
+-import java.util.HashMap;
+ import java.util.List;
+ import java.util.Map;
+ import java.util.Optional;
+ import java.util.Random;
++import lombok.AccessLevel;
++import lombok.Getter;
++import lombok.NoArgsConstructor;
++import lombok.Setter;
++import lombok.ToString;
+ import net.kyori.adventure.text.Component;
+ import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
+ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+@@ -55,61 +56,91 @@ import org.apache.logging.log4j.LogManager;
+ import org.apache.logging.log4j.Logger;
+ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+ import org.checkerframework.checker.nullness.qual.Nullable;
++import ru.leymooo.annotatedyaml.Annotations.Comment;
++import ru.leymooo.annotatedyaml.Annotations.Final;
++import ru.leymooo.annotatedyaml.Annotations.Ignore;
++import ru.leymooo.annotatedyaml.Annotations.Key;
++import ru.leymooo.annotatedyaml.Configuration;
++import ru.leymooo.annotatedyaml.ConfigurationSection;
++import ru.leymooo.annotatedyaml.provider.StandaloneConfigurationProvider;
+ 
+-public class VelocityConfiguration implements ProxyConfig {
++public class VelocityConfiguration extends Configuration implements ProxyConfig {
+ 
++  @Ignore
+   private static final Logger logger = LogManager.getLogger(VelocityConfiguration.class);
+ 
+-  @Expose private String bind = "0.0.0.0:25577";
+-  @Expose private String motd = "&3A Velocity Server";
+-  @Expose private int showMaxPlayers = 500;
+-  @Expose private boolean onlineMode = true;
+-  @Expose private boolean preventClientProxyConnections = false;
+-  @Expose private PlayerInfoForwarding playerInfoForwardingMode = PlayerInfoForwarding.NONE;
+-  private byte[] forwardingSecret = generateRandomString(12).getBytes(StandardCharsets.UTF_8);
+-  @Expose private boolean announceForge = false;
+-  @Expose private boolean onlineModeKickExistingPlayers = false;
+-  @Expose private PingPassthroughMode pingPassthrough = PingPassthroughMode.DISABLED;
+-  private final Servers servers;
+-  private final ForcedHosts forcedHosts;
+-  @Expose private final Advanced advanced;
+-  @Expose private final Query query;
+-  private final Metrics metrics;
+-  private final Messages messages;
++  @Expose @Key("config-version") @Final
++  @Comment("Config version. Do not change this")
++  private String configVesion = "1.0";
++
++  @Expose @Comment("What port should the proxy be bound to? By default,"
++      + " we'll bind to all addresses on port 25565.")
++  private String bind = "0.0.0.0:25565";
++
++  @Expose
++  @Comment({"What should be the MOTD? This gets displayed when the player adds your server to",
++      "their server list. Legacy color codes and JSON are accepted."})
++  private String motd = "&3A Velocity Server";
++
++  @Expose @Key("show-max-players")
++  @Comment({"What should we display for the maximum number of players?",
++      "(Velocity does not support a cap on the number of players online.)"})
++  private int showMaxPlayers = 500;
++
++  @Expose @Key("online-mode")
++  @Comment("Should we authenticate players with Mojang? By default, this is off.")
++  private boolean onlineMode = false;
++
++  @Expose @Key("prevent-client-proxy-connections")
++  @Comment(value = "preventClientProxyConnections", enumClass = Comments.class)
++  private boolean preventClientProxyConnections = false;
++
++  @Expose @Key("player-info-forwarding-mode")
++  @Comment(value = "playerInfoForwardingMode", enumClass = Comments.class)
++  private PlayerInfoForwarding playerInfoForwardingMode = PlayerInfoForwarding.NONE;
++
++  @Key("forwarding-secret")
++  @Comment("If you are using modern or BungeeGuard IP forwarding, configure a unique secret here.")
++  private String forwardingSecret = generateRandomString(12);
++  @Ignore private byte[] forwardingSecretBytes = forwardingSecret.getBytes(StandardCharsets.UTF_8);
++
++  @Expose @Key("announce-forge")
++  @Comment(value = "announceForge", enumClass = Comments.class)
++  private boolean announceForge = false;
++
++  @Expose @Key("kick-existing-players")
++  @Comment({"# If enabled (default is false) and the proxy is in online mode, Velocity will kick",
++       "any existing player who is online if a duplicate connection attempt is made."})
++  private boolean onlineModeKickExistingPlayers = false;
++
++  @Expose @Key("ping-passthrough")
++  @Comment(value = "pingPassthrough", enumClass = Comments.class)
++  private PingPassthroughMode pingPassthrough = PingPassthroughMode.DISABLED;
++
++  @Comment({"Configure your servers here. Each key represents the server's name, and the value",
++      "represents the IP address of the server to connect to."})
++  private final Servers servers = new Servers();
++  @Key("forced-hosts")
++  @Comment("Configure your forced hosts here.")
++  private Map<String, List<String>> forcedHosts = ImmutableMap.of(
++      "lobby.example.com", ImmutableList.of("lobby"),
++      "factions.example.com", ImmutableList.of("factions"),
++      "minigames.example.com", ImmutableList.of("minigames")
++  );
++
++  @Expose private final Advanced advanced = new Advanced();
++  @Expose private final Query query = new Query();
++  private final Messages messages = new Messages();
++  @Ignore
+   private net.kyori.adventure.text.@MonotonicNonNull Component motdAsComponent;
++  @Ignore
+   private @Nullable Favicon favicon;
+ 
+-  private VelocityConfiguration(Servers servers, ForcedHosts forcedHosts, Advanced advanced,
+-      Query query, Metrics metrics, Messages messages) {
+-    this.servers = servers;
+-    this.forcedHosts = forcedHosts;
+-    this.advanced = advanced;
+-    this.query = query;
+-    this.metrics = metrics;
+-    this.messages = messages;
+-  }
+-
+-  private VelocityConfiguration(String bind, String motd, int showMaxPlayers, boolean onlineMode,
+-      boolean preventClientProxyConnections, boolean announceForge,
+-      PlayerInfoForwarding playerInfoForwardingMode, byte[] forwardingSecret,
+-      boolean onlineModeKickExistingPlayers, PingPassthroughMode pingPassthrough, Servers servers,
+-      ForcedHosts forcedHosts, Advanced advanced, Query query, Metrics metrics, Messages messages) {
+-    this.bind = bind;
+-    this.motd = motd;
+-    this.showMaxPlayers = showMaxPlayers;
+-    this.onlineMode = onlineMode;
+-    this.preventClientProxyConnections = preventClientProxyConnections;
+-    this.announceForge = announceForge;
+-    this.playerInfoForwardingMode = playerInfoForwardingMode;
+-    this.forwardingSecret = forwardingSecret;
+-    this.onlineModeKickExistingPlayers = onlineModeKickExistingPlayers;
+-    this.pingPassthrough = pingPassthrough;
+-    this.servers = servers;
+-    this.forcedHosts = forcedHosts;
+-    this.advanced = advanced;
+-    this.query = query;
+-    this.metrics = metrics;
+-    this.messages = messages;
++
++  @Override
++  public void loaded() {
++    this.forcedHosts = ImmutableMap.copyOf(this.forcedHosts);
++    this.forwardingSecretBytes = forwardingSecret.getBytes(StandardCharsets.UTF_8);
+   }
+ 
+   /**
+@@ -143,7 +174,7 @@ public class VelocityConfiguration implements ProxyConfig {
+         break;
+       case MODERN:
+       case BUNGEEGUARD:
+-        if (forwardingSecret == null || forwardingSecret.length == 0) {
++        if (forwardingSecretBytes == null || forwardingSecretBytes.length == 0) {
+           logger.error("You don't have a forwarding secret set. This is required for security.");
+           valid = false;
+         }
+@@ -172,7 +203,7 @@ public class VelocityConfiguration implements ProxyConfig {
+       }
+     }
+ 
+-    for (Map.Entry<String, List<String>> entry : forcedHosts.getForcedHosts().entrySet()) {
++    for (Map.Entry<String, List<String>> entry : forcedHosts.entrySet()) {
+       if (entry.getValue().isEmpty()) {
+         logger.error("Forced host '{}' does not contain any servers", entry.getKey());
+         valid = false;
+@@ -252,7 +283,7 @@ public class VelocityConfiguration implements ProxyConfig {
+ 
+   @Override
+   public boolean shouldQueryShowPlugins() {
+-    return query.shouldQueryShowPlugins();
++    return query.isShowPlugins();
+   }
+ 
+   /**
+@@ -297,7 +328,7 @@ public class VelocityConfiguration implements ProxyConfig {
+   }
+ 
+   public byte[] getForwardingSecret() {
+-    return forwardingSecret.clone();
++    return forwardingSecretBytes.clone();
+   }
+ 
+   @Override
+@@ -312,7 +343,7 @@ public class VelocityConfiguration implements ProxyConfig {
+ 
+   @Override
+   public Map<String, List<String>> getForcedHosts() {
+-    return forcedHosts.getForcedHosts();
++    return forcedHosts;
+   }
+ 
+   @Override
+@@ -358,10 +389,6 @@ public class VelocityConfiguration implements ProxyConfig {
+     return advanced.tcpFastOpen;
+   }
+ 
+-  public Metrics getMetrics() {
+-    return metrics;
+-  }
+-
+   public PingPassthroughMode getPingPassthrough() {
+     return pingPassthrough;
+   }
+@@ -417,85 +444,20 @@ public class VelocityConfiguration implements ProxyConfig {
+   @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE",
+       justification = "I looked carefully and there's no way SpotBugs is right.")
+   public static VelocityConfiguration read(Path path) throws IOException {
+-    URL defaultConfigLocation = VelocityConfiguration.class.getClassLoader()
+-        .getResource("default-velocity.toml");
+-    if (defaultConfigLocation == null) {
+-      throw new RuntimeException("Default configuration file does not exist.");
+-    }
+-
+-    boolean mustResave = false;
+-    CommentedFileConfig config = CommentedFileConfig.builder(path)
+-        .defaultData(defaultConfigLocation)
+-        .autosave()
+-        .preserveInsertionOrder()
+-        .sync()
++    VelocityConfiguration configuration = Configuration.builder(VelocityConfiguration.class)
++        .file(path)
++        .provider(StandaloneConfigurationProvider.class)
+         .build();
+-    config.load();
+-
+-    // Create temporary default configuration
+-    File tmpFile = File.createTempFile("default-config", null);
+-    tmpFile.deleteOnExit();
+ 
+-    // Copy over default file to tmp location
+-    try (InputStream in = defaultConfigLocation.openStream()) {
+-      Files.copy(in, tmpFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+-    }
+-    CommentedFileConfig defaultConfig = CommentedFileConfig.of(tmpFile, TomlFormat.instance());
+-    defaultConfig.load();
+-
+-    // Handle any cases where the config needs to be saved again
+-    byte[] forwardingSecret;
+-    String forwardingSecretString = config.get("forwarding-secret");
+-    if (forwardingSecretString == null || forwardingSecretString.isEmpty()) {
+-      forwardingSecretString = generateRandomString(12);
+-      config.set("forwarding-secret", forwardingSecretString);
+-      mustResave = true;
++    boolean exists = path.toFile().exists();
++    if (!configuration.load() && path.toFile().exists()) {
++      throw new RuntimeException("Failed to load config");
+     }
+-    forwardingSecret = forwardingSecretString.getBytes(StandardCharsets.UTF_8);
+-
+-    if (mustResave) {
+-      config.save();
++    if (!exists) {
++      configuration.loaded();
+     }
+-
+-    // Read the rest of the config
+-    CommentedConfig serversConfig = config.get("servers");
+-    CommentedConfig forcedHostsConfig = config.get("forced-hosts");
+-    CommentedConfig advancedConfig = config.get("advanced");
+-    CommentedConfig queryConfig = config.get("query");
+-    CommentedConfig metricsConfig = config.get("metrics");
+-    CommentedConfig messagesConfig = config.get("messages");
+-    PlayerInfoForwarding forwardingMode = config.getEnumOrElse("player-info-forwarding-mode",
+-        PlayerInfoForwarding.NONE);
+-    PingPassthroughMode pingPassthroughMode = config.getEnumOrElse("ping-passthrough",
+-        PingPassthroughMode.DISABLED);
+-
+-    String bind = config.getOrElse("bind", "0.0.0.0:25577");
+-    String motd = config.getOrElse("motd", "&#09add3A Velocity Server");
+-    int maxPlayers = config.getIntOrElse("show-max-players", 500);
+-    Boolean onlineMode = config.getOrElse("online-mode", true);
+-    Boolean announceForge = config.getOrElse("announce-forge", true);
+-    Boolean preventClientProxyConnections = config.getOrElse("prevent-client-proxy-connections",
+-        true);
+-    Boolean kickExisting = config.getOrElse("kick-existing-players", false);
+-
+-    return new VelocityConfiguration(
+-        bind,
+-        motd,
+-        maxPlayers,
+-        onlineMode,
+-        announceForge,
+-        preventClientProxyConnections,
+-        forwardingMode,
+-        forwardingSecret,
+-        kickExisting,
+-        pingPassthroughMode,
+-        new Servers(serversConfig),
+-        new ForcedHosts(forcedHostsConfig),
+-        new Advanced(advancedConfig),
+-        new Query(queryConfig),
+-        new Metrics(metricsConfig),
+-        new Messages(messagesConfig, defaultConfig.get("messages"))
+-    );
++    configuration.save();
++    return configuration;
+   }
+ 
+   private static String generateRandomString(int length) {
+@@ -512,333 +474,139 @@ public class VelocityConfiguration implements ProxyConfig {
+     return onlineModeKickExistingPlayers;
+   }
+ 
+-  private static class Servers {
++  @Getter
++  @Setter
++  @ToString
++  @NoArgsConstructor(access = AccessLevel.PRIVATE)
++  private static class Servers implements ConfigurationSection {
+ 
+     private Map<String, String> servers = ImmutableMap.of(
+         "lobby", "127.0.0.1:30066",
+         "factions", "127.0.0.1:30067",
+         "minigames", "127.0.0.1:30068"
+     );
++    @Key("try")
++    @Comment("In what order we should try servers when a player logs in"
++        + " or is kicked from a server.")
+     private List<String> attemptConnectionOrder = ImmutableList.of("lobby");
+ 
+-    private Servers() {
+-    }
+-
+-    private Servers(CommentedConfig config) {
+-      if (config != null) {
+-        Map<String, String> servers = new HashMap<>();
+-        for (UnmodifiableConfig.Entry entry : config.entrySet()) {
+-          if (entry.getValue() instanceof String) {
+-            servers.put(cleanServerName(entry.getKey()), entry.getValue());
+-          } else {
+-            if (!entry.getKey().equalsIgnoreCase("try")) {
+-              throw new IllegalArgumentException(
+-                  "Server entry " + entry.getKey() + " is not a string!");
+-            }
+-          }
+-        }
+-        this.servers = ImmutableMap.copyOf(servers);
+-        this.attemptConnectionOrder = config.getOrElse("try", attemptConnectionOrder);
+-      }
+-    }
+-
+-    private Servers(Map<String, String> servers, List<String> attemptConnectionOrder) {
+-      this.servers = servers;
+-      this.attemptConnectionOrder = attemptConnectionOrder;
+-    }
+-
+-    private Map<String, String> getServers() {
+-      return servers;
+-    }
+-
+-    public void setServers(Map<String, String> servers) {
+-      this.servers = servers;
+-    }
+-
+-    public List<String> getAttemptConnectionOrder() {
+-      return attemptConnectionOrder;
+-    }
+-
+-    public void setAttemptConnectionOrder(List<String> attemptConnectionOrder) {
+-      this.attemptConnectionOrder = attemptConnectionOrder;
+-    }
+-
+-    /**
+-     * TOML requires keys to match a regex of {@code [A-Za-z0-9_-]} unless it is wrapped in
+-     * quotes; however, the TOML parser returns the key with the quotes so we need to clean the
+-     * server name before we pass it onto server registration to keep proper server name behavior.
+-     *
+-     * @param name the server name to clean
+-     *
+-     * @return the cleaned server name
+-     */
+-    private String cleanServerName(String name) {
+-      return name.replace("\"", "");
+-    }
+-
+     @Override
+-    public String toString() {
+-      return "Servers{"
+-          + "servers=" + servers
+-          + ", attemptConnectionOrder=" + attemptConnectionOrder
+-          + '}';
++    public void loaded() {
++      servers = ImmutableMap.copyOf(servers);
++      attemptConnectionOrder = ImmutableList.copyOf(attemptConnectionOrder);
+     }
+   }
+ 
+-  private static class ForcedHosts {
++  @Getter
++  @Setter
++  @ToString
++  @NoArgsConstructor(access = AccessLevel.PRIVATE)
++  private static class Advanced implements ConfigurationSection {
++    @Expose @Key("compression-threshold")
++    @Comment({"How large a Minecraft packet has to be before we compress it. Setting this to zero",
++        "will compress all packets, and setting it to -1 will disable compression entirely."})
++    private int compressionThreshold = 256;
+ 
+-    private Map<String, List<String>> forcedHosts = ImmutableMap.of(
+-        "lobby.example.com", ImmutableList.of("lobby"),
+-        "factions.example.com", ImmutableList.of("factions"),
+-        "minigames.example.com", ImmutableList.of("minigames")
+-    );
++    @Expose @Key("compression-level")
++    @Comment({"How much compression should be done (from 0-9). The default is -1, which uses the",
++        "default level of 6."})
++    private int compressionLevel = -1;
+ 
+-    private ForcedHosts() {
+-    }
++    @Expose @Key("login-ratelimit")
++    @Comment({"How fast (in milliseconds) are clients allowed to connect"
++        + " after the last connection?",
++        "By default, this is three seconds. Disable this by setting this to 0."})
++    private int loginRatelimit = 3000;
+ 
+-    private ForcedHosts(CommentedConfig config) {
+-      if (config != null) {
+-        Map<String, List<String>> forcedHosts = new HashMap<>();
+-        for (UnmodifiableConfig.Entry entry : config.entrySet()) {
+-          if (entry.getValue() instanceof String) {
+-            forcedHosts.put(entry.getKey(), ImmutableList.of(entry.getValue()));
+-          } else if (entry.getValue() instanceof List) {
+-            forcedHosts.put(entry.getKey(), ImmutableList.copyOf((List<String>) entry.getValue()));
+-          } else {
+-            throw new IllegalStateException(
+-                "Invalid value of type " + entry.getValue().getClass() + " in forced hosts!");
+-          }
+-        }
+-        this.forcedHosts = ImmutableMap.copyOf(forcedHosts);
+-      }
+-    }
++    @Expose @Key("connection-timeout")
++    @Comment("Specify a custom timeout for connection timeouts here. The default is five seconds.")
++    private int connectionTimeout = 5000;
+ 
+-    private ForcedHosts(Map<String, List<String>> forcedHosts) {
+-      this.forcedHosts = forcedHosts;
+-    }
++    @Expose @Key("read-timeout")
++    @Comment("Specify a read timeout for connections here. The default is 30 seconds.")
++    private int readTimeout = 30000;
+ 
+-    private Map<String, List<String>> getForcedHosts() {
+-      return forcedHosts;
+-    }
++    @Expose @Key("haproxy-protocol")
++    @Comment({"Enables compatibility with HAProxy's PROXY protocol. ",
++        "If you don't know what this is for, then don't enable it."})
++    private boolean proxyProtocol = false;
+ 
+-    private void setForcedHosts(Map<String, List<String>> forcedHosts) {
+-      this.forcedHosts = forcedHosts;
+-    }
++    @Expose @Key("tcp-fast-open")
++    @Comment("Enables TCP fast open support on the proxy. Requires the proxy to run on Linux.")
++    private boolean tcpFastOpen = false;
+ 
+-    @Override
+-    public String toString() {
+-      return "ForcedHosts{"
+-          + "forcedHosts=" + forcedHosts
+-          + '}';
+-    }
+-  }
++    @Expose @Key("bungee-plugin-message-channel")
++    @Comment("Enables BungeeCord plugin messaging channel support on Velocity.")
++    private boolean bungeePluginMessageChannel = true;
+ 
+-  private static class Advanced {
++    @Expose @Key("show-ping-requests")
++    @Comment("# Shows ping requests to the proxy from clients.")
++    private boolean showPingRequests = false;
+ 
+-    @Expose private int compressionThreshold = 256;
+-    @Expose private int compressionLevel = -1;
+-    @Expose private int loginRatelimit = 3000;
+-    @Expose private int connectionTimeout = 5000;
+-    @Expose private int readTimeout = 30000;
+-    @Expose private boolean proxyProtocol = false;
+-    @Expose private boolean tcpFastOpen = false;
+-    @Expose private boolean bungeePluginMessageChannel = true;
+-    @Expose private boolean showPingRequests = false;
+-    @Expose private boolean failoverOnUnexpectedServerDisconnect = true;
+-    @Expose private boolean announceProxyCommands = true;
+-    @Expose private boolean logCommandExecutions = false;
++    @Expose @Key("failover-on-unexpected-server-disconnect")
++    @Comment(value = "failoverOnUnexpectedServerDisconnect", enumClass = Comments.class)
++    private boolean failoverOnUnexpectedServerDisconnect = true;
+ 
+-    private Advanced() {
+-    }
+-
+-    private Advanced(CommentedConfig config) {
+-      if (config != null) {
+-        this.compressionThreshold = config.getIntOrElse("compression-threshold", 256);
+-        this.compressionLevel = config.getIntOrElse("compression-level", -1);
+-        this.loginRatelimit = config.getIntOrElse("login-ratelimit", 3000);
+-        this.connectionTimeout = config.getIntOrElse("connection-timeout", 5000);
+-        this.readTimeout = config.getIntOrElse("read-timeout", 30000);
+-        if (config.contains("haproxy-protocol")) {
+-          this.proxyProtocol = config.getOrElse("haproxy-protocol", false);
+-        } else {
+-          this.proxyProtocol = config.getOrElse("proxy-protocol", false);
+-        }
+-        this.tcpFastOpen = config.getOrElse("tcp-fast-open", false);
+-        this.bungeePluginMessageChannel = config.getOrElse("bungee-plugin-message-channel", true);
+-        this.showPingRequests = config.getOrElse("show-ping-requests", false);
+-        this.failoverOnUnexpectedServerDisconnect = config
+-            .getOrElse("failover-on-unexpected-server-disconnect", true);
+-        this.announceProxyCommands = config.getOrElse("announce-proxy-commands", true);
+-        this.logCommandExecutions = config.getOrElse("log-command-executions", false);
+-      }
+-    }
++    @Expose @Key("announce-proxy-commands")
++    @Comment("Declares the proxy commands to 1.13+ clients.")
++    private boolean announceProxyCommands = true;
+ 
+-    public int getCompressionThreshold() {
+-      return compressionThreshold;
+-    }
+-
+-    public int getCompressionLevel() {
+-      return compressionLevel;
+-    }
+-
+-    public int getLoginRatelimit() {
+-      return loginRatelimit;
+-    }
+-
+-    public int getConnectionTimeout() {
+-      return connectionTimeout;
+-    }
+-
+-    public int getReadTimeout() {
+-      return readTimeout;
+-    }
+-
+-    public boolean isProxyProtocol() {
+-      return proxyProtocol;
+-    }
+-
+-    public boolean isTcpFastOpen() {
+-      return tcpFastOpen;
+-    }
+-
+-    public boolean isBungeePluginMessageChannel() {
+-      return bungeePluginMessageChannel;
+-    }
+-
+-    public boolean isShowPingRequests() {
+-      return showPingRequests;
+-    }
+-
+-    public boolean isFailoverOnUnexpectedServerDisconnect() {
+-      return failoverOnUnexpectedServerDisconnect;
+-    }
+-
+-    public boolean isAnnounceProxyCommands() {
+-      return announceProxyCommands;
+-    }
+-
+-    public boolean isLogCommandExecutions() {
+-      return logCommandExecutions;
+-    }
+-
+-    @Override
+-    public String toString() {
+-      return "Advanced{"
+-          + "compressionThreshold=" + compressionThreshold
+-          + ", compressionLevel=" + compressionLevel
+-          + ", loginRatelimit=" + loginRatelimit
+-          + ", connectionTimeout=" + connectionTimeout
+-          + ", readTimeout=" + readTimeout
+-          + ", proxyProtocol=" + proxyProtocol
+-          + ", tcpFastOpen=" + tcpFastOpen
+-          + ", bungeePluginMessageChannel=" + bungeePluginMessageChannel
+-          + ", showPingRequests=" + showPingRequests
+-          + ", failoverOnUnexpectedServerDisconnect=" + failoverOnUnexpectedServerDisconnect
+-          + ", announceProxyCommands=" + announceProxyCommands
+-          + ", logCommandExecutions=" + logCommandExecutions
+-          + '}';
+-    }
++    @Expose @Key("log-command-executions")
++    @Comment("Enables the logging of commands")
++    private boolean logCommandExecutions = false;
+   }
+ 
+-  private static class Query {
++  @Getter
++  @ToString
++  @NoArgsConstructor(access = AccessLevel.PRIVATE)
++  private static class Query implements ConfigurationSection {
+ 
+-    @Expose private boolean queryEnabled = false;
+-    @Expose private int queryPort = 25577;
+-    @Expose private String queryMap = "Velocity";
+-    @Expose private boolean showPlugins = false;
++    @Expose @Key("enabled")
++    @Comment("Whether to enable responding to GameSpy 4 query responses or not.")
++    private boolean queryEnabled = false;
+ 
+-    private Query() {
+-    }
++    @Expose @Key("port")
++    @Comment("If query is enabled, on what port should the query protocol listen on?")
++    private int queryPort = 25577;
+ 
+-    private Query(boolean queryEnabled, int queryPort, String queryMap, boolean showPlugins) {
+-      this.queryEnabled = queryEnabled;
+-      this.queryPort = queryPort;
+-      this.queryMap = queryMap;
+-      this.showPlugins = showPlugins;
+-    }
++    @Expose @Key("map")
++    @Comment("This is the map name that is reported to the query services.")
++    private String queryMap = "Velocity";
+ 
+-    private Query(CommentedConfig config) {
+-      if (config != null) {
+-        this.queryEnabled = config.getOrElse("enabled", false);
+-        this.queryPort = config.getIntOrElse("port", 25577);
+-        this.queryMap = config.getOrElse("map", "Velocity");
+-        this.showPlugins = config.getOrElse("show-plugins", false);
+-      }
+-    }
++    @Expose @Key("show-plugins")
++    @Comment("Whether plugins should be shown in query response by default or not")
++    private boolean showPlugins = false;
+ 
+-    public boolean isQueryEnabled() {
+-      return queryEnabled;
+-    }
++  }
+ 
+-    public int getQueryPort() {
+-      return queryPort;
+-    }
+ 
+-    public String getQueryMap() {
+-      return queryMap;
+-    }
++  public static class Messages implements ConfigurationSection {
+ 
+-    public boolean shouldQueryShowPlugins() {
+-      return showPlugins;
+-    }
++    @Key("kick-prefix") @Comment({"Prefix when the player gets kicked from a server.",
++        "First argument '%s': the server name"})
++    private final String kickPrefix = "&cKicked from %s: ";
+ 
+-    @Override
+-    public String toString() {
+-      return "Query{"
+-          + "queryEnabled=" + queryEnabled
+-          + ", queryPort=" + queryPort
+-          + ", queryMap='" + queryMap + '\''
+-          + ", showPlugins=" + showPlugins
+-          + '}';
+-    }
+-  }
++    @Key("disconnect-prefix") @Comment({"Prefix when the player is disconnected from a server.",
++        "First argument '%s': the server name"})
++    private final String disconnectPrefix = "&cCan't connect to %s: ";
+ 
+-  public static class Metrics {
+-    private boolean enabled = true;
++    @Key("online-mode-only")
++    private final String onlineModeOnly = "&cThis server only accepts connections"
++        + " from online-mode clients.\n\n&7Did you change your username?"
++        + " Sign out of Minecraft, sign back in, and try again.";
+ 
+-    private Metrics(CommentedConfig toml) {
+-      if (toml != null) {
+-        this.enabled = toml.getOrElse("enabled", true);
+-      }
+-    }
++    @Key("no-available-servers")
++    private final String noAvailableServers = "&cThere are no available servers.";
+ 
+-    public boolean isEnabled() {
+-      return enabled;
+-    }
+-  }
++    @Key("already-connected")
++    private final String alreadyConnected = "&cYou are already connected to this proxy!";
+ 
+-  public static class Messages {
+-
+-    private final CommentedConfig toml;
+-    private final CommentedConfig defaultToml;
+-
+-    private final String kickPrefix;
+-    private final String disconnectPrefix;
+-    private final String onlineModeOnly;
+-    private final String noAvailableServers;
+-    private final String alreadyConnected;
+-    private final String movedToNewServerPrefix;
+-    private final String genericConnectionError;
+-
+-    private Messages(CommentedConfig toml, CommentedConfig defaultToml) {
+-      this.toml = toml;
+-      this.defaultToml = defaultToml;
+-      this.kickPrefix = getString("kick-prefix");
+-      this.disconnectPrefix = getString("disconnect-prefix");
+-      this.onlineModeOnly = getString("online-mode-only");
+-      this.noAvailableServers = getString("no-available-servers");
+-      this.alreadyConnected = getString("already-connected");
+-      this.movedToNewServerPrefix = getString("moved-to-new-server-prefix");
+-      this.genericConnectionError = getString("generic-connection-error");
+-    }
++    @Key("moved-to-new-server-prefix")
++    private final String movedToNewServerPrefix = "&cThe server you were on kicked you: ";
+ 
+-    private String getString(String path) {
+-      String def = defaultToml.getOrElse(path, "");
+-      if (toml == null) {
+-        return def;
+-      }
+-      return toml.getOrElse(path, def);
+-    }
++    @Key("generic-connection-error")
++    private final String genericConnectionError =
++        "&cAn internal error occurred in your connection.";
+ 
+     public Component getKickPrefix(String server) {
+       return deserialize(String.format(kickPrefix, server));
+diff --git a/proxy/src/main/resources/default-velocity.toml b/proxy/src/main/resources/default-velocity.toml
+index fbad6626..06bd3696 100644
+--- a/proxy/src/main/resources/default-velocity.toml
++++ b/proxy/src/main/resources/default-velocity.toml
+@@ -13,7 +13,7 @@ motd = "&#09add3A Velocity Server"
+ show-max-players = 500
+ 
+ # Should we authenticate players with Mojang? By default, this is on.
+-online-mode = true
++online-mode = false
+ 
+ # If client's ISP/AS sent from this proxy is different from the one from Mojang's
+ # authentication server, the player is kicked. This disallows some VPN and proxy
+-- 
+2.29.2.windows.3
+
