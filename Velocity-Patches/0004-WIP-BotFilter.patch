@@ -1,0 +1,3181 @@
+From 94bef4df33abf550e6d03122f553edeccf182aaf Mon Sep 17 00:00:00 2001
+From: Leymooo <vjatseslav.maspanov@gmail.com>
+Date: Sun, 4 Apr 2021 11:14:53 +0300
+Subject: [PATCH] [WIP] BotFilter
+
+
+diff --git a/HEADER_BOTFILTER.txt b/HEADER_BOTFILTER.txt
+new file mode 100644
+index 00000000..fdaaab86
+--- /dev/null
++++ b/HEADER_BOTFILTER.txt
+@@ -0,0 +1,15 @@
++Velocity-BotFilter
++Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++
++This program is free software: you can redistribute it and/or modify
++it under the terms of the GNU Affero General Public License as published by
++the Free Software Foundation, either version 3 of the License, or
++(at your option) any later version.
++
++This program is distributed in the hope that it will be useful,
++but WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++GNU Affero General Public License for more details.
++
++You should have received a copy of the GNU Affero General Public License
++along with this program.  If not, see <http://www.gnu.org/licenses/>.
+\ No newline at end of file
+diff --git a/LICENSE_BOTFILTER b/LICENSE_BOTFILTER
+new file mode 100644
+index 00000000..0ad25db4
+--- /dev/null
++++ b/LICENSE_BOTFILTER
+@@ -0,0 +1,661 @@
++                    GNU AFFERO GENERAL PUBLIC LICENSE
++                       Version 3, 19 November 2007
++
++ Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
++ Everyone is permitted to copy and distribute verbatim copies
++ of this license document, but changing it is not allowed.
++
++                            Preamble
++
++  The GNU Affero General Public License is a free, copyleft license for
++software and other kinds of works, specifically designed to ensure
++cooperation with the community in the case of network server software.
++
++  The licenses for most software and other practical works are designed
++to take away your freedom to share and change the works.  By contrast,
++our General Public Licenses are intended to guarantee your freedom to
++share and change all versions of a program--to make sure it remains free
++software for all its users.
++
++  When we speak of free software, we are referring to freedom, not
++price.  Our General Public Licenses are designed to make sure that you
++have the freedom to distribute copies of free software (and charge for
++them if you wish), that you receive source code or can get it if you
++want it, that you can change the software or use pieces of it in new
++free programs, and that you know you can do these things.
++
++  Developers that use our General Public Licenses protect your rights
++with two steps: (1) assert copyright on the software, and (2) offer
++you this License which gives you legal permission to copy, distribute
++and/or modify the software.
++
++  A secondary benefit of defending all users' freedom is that
++improvements made in alternate versions of the program, if they
++receive widespread use, become available for other developers to
++incorporate.  Many developers of free software are heartened and
++encouraged by the resulting cooperation.  However, in the case of
++software used on network servers, this result may fail to come about.
++The GNU General Public License permits making a modified version and
++letting the public access it on a server without ever releasing its
++source code to the public.
++
++  The GNU Affero General Public License is designed specifically to
++ensure that, in such cases, the modified source code becomes available
++to the community.  It requires the operator of a network server to
++provide the source code of the modified version running there to the
++users of that server.  Therefore, public use of a modified version, on
++a publicly accessible server, gives the public access to the source
++code of the modified version.
++
++  An older license, called the Affero General Public License and
++published by Affero, was designed to accomplish similar goals.  This is
++a different license, not a version of the Affero GPL, but Affero has
++released a new version of the Affero GPL which permits relicensing under
++this license.
++
++  The precise terms and conditions for copying, distribution and
++modification follow.
++
++                       TERMS AND CONDITIONS
++
++  0. Definitions.
++
++  "This License" refers to version 3 of the GNU Affero General Public License.
++
++  "Copyright" also means copyright-like laws that apply to other kinds of
++works, such as semiconductor masks.
++
++  "The Program" refers to any copyrightable work licensed under this
++License.  Each licensee is addressed as "you".  "Licensees" and
++"recipients" may be individuals or organizations.
++
++  To "modify" a work means to copy from or adapt all or part of the work
++in a fashion requiring copyright permission, other than the making of an
++exact copy.  The resulting work is called a "modified version" of the
++earlier work or a work "based on" the earlier work.
++
++  A "covered work" means either the unmodified Program or a work based
++on the Program.
++
++  To "propagate" a work means to do anything with it that, without
++permission, would make you directly or secondarily liable for
++infringement under applicable copyright law, except executing it on a
++computer or modifying a private copy.  Propagation includes copying,
++distribution (with or without modification), making available to the
++public, and in some countries other activities as well.
++
++  To "convey" a work means any kind of propagation that enables other
++parties to make or receive copies.  Mere interaction with a user through
++a computer network, with no transfer of a copy, is not conveying.
++
++  An interactive user interface displays "Appropriate Legal Notices"
++to the extent that it includes a convenient and prominently visible
++feature that (1) displays an appropriate copyright notice, and (2)
++tells the user that there is no warranty for the work (except to the
++extent that warranties are provided), that licensees may convey the
++work under this License, and how to view a copy of this License.  If
++the interface presents a list of user commands or options, such as a
++menu, a prominent item in the list meets this criterion.
++
++  1. Source Code.
++
++  The "source code" for a work means the preferred form of the work
++for making modifications to it.  "Object code" means any non-source
++form of a work.
++
++  A "Standard Interface" means an interface that either is an official
++standard defined by a recognized standards body, or, in the case of
++interfaces specified for a particular programming language, one that
++is widely used among developers working in that language.
++
++  The "System Libraries" of an executable work include anything, other
++than the work as a whole, that (a) is included in the normal form of
++packaging a Major Component, but which is not part of that Major
++Component, and (b) serves only to enable use of the work with that
++Major Component, or to implement a Standard Interface for which an
++implementation is available to the public in source code form.  A
++"Major Component", in this context, means a major essential component
++(kernel, window system, and so on) of the specific operating system
++(if any) on which the executable work runs, or a compiler used to
++produce the work, or an object code interpreter used to run it.
++
++  The "Corresponding Source" for a work in object code form means all
++the source code needed to generate, install, and (for an executable
++work) run the object code and to modify the work, including scripts to
++control those activities.  However, it does not include the work's
++System Libraries, or general-purpose tools or generally available free
++programs which are used unmodified in performing those activities but
++which are not part of the work.  For example, Corresponding Source
++includes interface definition files associated with source files for
++the work, and the source code for shared libraries and dynamically
++linked subprograms that the work is specifically designed to require,
++such as by intimate data communication or control flow between those
++subprograms and other parts of the work.
++
++  The Corresponding Source need not include anything that users
++can regenerate automatically from other parts of the Corresponding
++Source.
++
++  The Corresponding Source for a work in source code form is that
++same work.
++
++  2. Basic Permissions.
++
++  All rights granted under this License are granted for the term of
++copyright on the Program, and are irrevocable provided the stated
++conditions are met.  This License explicitly affirms your unlimited
++permission to run the unmodified Program.  The output from running a
++covered work is covered by this License only if the output, given its
++content, constitutes a covered work.  This License acknowledges your
++rights of fair use or other equivalent, as provided by copyright law.
++
++  You may make, run and propagate covered works that you do not
++convey, without conditions so long as your license otherwise remains
++in force.  You may convey covered works to others for the sole purpose
++of having them make modifications exclusively for you, or provide you
++with facilities for running those works, provided that you comply with
++the terms of this License in conveying all material for which you do
++not control copyright.  Those thus making or running the covered works
++for you must do so exclusively on your behalf, under your direction
++and control, on terms that prohibit them from making any copies of
++your copyrighted material outside their relationship with you.
++
++  Conveying under any other circumstances is permitted solely under
++the conditions stated below.  Sublicensing is not allowed; section 10
++makes it unnecessary.
++
++  3. Protecting Users' Legal Rights From Anti-Circumvention Law.
++
++  No covered work shall be deemed part of an effective technological
++measure under any applicable law fulfilling obligations under article
++11 of the WIPO copyright treaty adopted on 20 December 1996, or
++similar laws prohibiting or restricting circumvention of such
++measures.
++
++  When you convey a covered work, you waive any legal power to forbid
++circumvention of technological measures to the extent such circumvention
++is effected by exercising rights under this License with respect to
++the covered work, and you disclaim any intention to limit operation or
++modification of the work as a means of enforcing, against the work's
++users, your or third parties' legal rights to forbid circumvention of
++technological measures.
++
++  4. Conveying Verbatim Copies.
++
++  You may convey verbatim copies of the Program's source code as you
++receive it, in any medium, provided that you conspicuously and
++appropriately publish on each copy an appropriate copyright notice;
++keep intact all notices stating that this License and any
++non-permissive terms added in accord with section 7 apply to the code;
++keep intact all notices of the absence of any warranty; and give all
++recipients a copy of this License along with the Program.
++
++  You may charge any price or no price for each copy that you convey,
++and you may offer support or warranty protection for a fee.
++
++  5. Conveying Modified Source Versions.
++
++  You may convey a work based on the Program, or the modifications to
++produce it from the Program, in the form of source code under the
++terms of section 4, provided that you also meet all of these conditions:
++
++    a) The work must carry prominent notices stating that you modified
++    it, and giving a relevant date.
++
++    b) The work must carry prominent notices stating that it is
++    released under this License and any conditions added under section
++    7.  This requirement modifies the requirement in section 4 to
++    "keep intact all notices".
++
++    c) You must license the entire work, as a whole, under this
++    License to anyone who comes into possession of a copy.  This
++    License will therefore apply, along with any applicable section 7
++    additional terms, to the whole of the work, and all its parts,
++    regardless of how they are packaged.  This License gives no
++    permission to license the work in any other way, but it does not
++    invalidate such permission if you have separately received it.
++
++    d) If the work has interactive user interfaces, each must display
++    Appropriate Legal Notices; however, if the Program has interactive
++    interfaces that do not display Appropriate Legal Notices, your
++    work need not make them do so.
++
++  A compilation of a covered work with other separate and independent
++works, which are not by their nature extensions of the covered work,
++and which are not combined with it such as to form a larger program,
++in or on a volume of a storage or distribution medium, is called an
++"aggregate" if the compilation and its resulting copyright are not
++used to limit the access or legal rights of the compilation's users
++beyond what the individual works permit.  Inclusion of a covered work
++in an aggregate does not cause this License to apply to the other
++parts of the aggregate.
++
++  6. Conveying Non-Source Forms.
++
++  You may convey a covered work in object code form under the terms
++of sections 4 and 5, provided that you also convey the
++machine-readable Corresponding Source under the terms of this License,
++in one of these ways:
++
++    a) Convey the object code in, or embodied in, a physical product
++    (including a physical distribution medium), accompanied by the
++    Corresponding Source fixed on a durable physical medium
++    customarily used for software interchange.
++
++    b) Convey the object code in, or embodied in, a physical product
++    (including a physical distribution medium), accompanied by a
++    written offer, valid for at least three years and valid for as
++    long as you offer spare parts or customer support for that product
++    model, to give anyone who possesses the object code either (1) a
++    copy of the Corresponding Source for all the software in the
++    product that is covered by this License, on a durable physical
++    medium customarily used for software interchange, for a price no
++    more than your reasonable cost of physically performing this
++    conveying of source, or (2) access to copy the
++    Corresponding Source from a network server at no charge.
++
++    c) Convey individual copies of the object code with a copy of the
++    written offer to provide the Corresponding Source.  This
++    alternative is allowed only occasionally and noncommercially, and
++    only if you received the object code with such an offer, in accord
++    with subsection 6b.
++
++    d) Convey the object code by offering access from a designated
++    place (gratis or for a charge), and offer equivalent access to the
++    Corresponding Source in the same way through the same place at no
++    further charge.  You need not require recipients to copy the
++    Corresponding Source along with the object code.  If the place to
++    copy the object code is a network server, the Corresponding Source
++    may be on a different server (operated by you or a third party)
++    that supports equivalent copying facilities, provided you maintain
++    clear directions next to the object code saying where to find the
++    Corresponding Source.  Regardless of what server hosts the
++    Corresponding Source, you remain obligated to ensure that it is
++    available for as long as needed to satisfy these requirements.
++
++    e) Convey the object code using peer-to-peer transmission, provided
++    you inform other peers where the object code and Corresponding
++    Source of the work are being offered to the general public at no
++    charge under subsection 6d.
++
++  A separable portion of the object code, whose source code is excluded
++from the Corresponding Source as a System Library, need not be
++included in conveying the object code work.
++
++  A "User Product" is either (1) a "consumer product", which means any
++tangible personal property which is normally used for personal, family,
++or household purposes, or (2) anything designed or sold for incorporation
++into a dwelling.  In determining whether a product is a consumer product,
++doubtful cases shall be resolved in favor of coverage.  For a particular
++product received by a particular user, "normally used" refers to a
++typical or common use of that class of product, regardless of the status
++of the particular user or of the way in which the particular user
++actually uses, or expects or is expected to use, the product.  A product
++is a consumer product regardless of whether the product has substantial
++commercial, industrial or non-consumer uses, unless such uses represent
++the only significant mode of use of the product.
++
++  "Installation Information" for a User Product means any methods,
++procedures, authorization keys, or other information required to install
++and execute modified versions of a covered work in that User Product from
++a modified version of its Corresponding Source.  The information must
++suffice to ensure that the continued functioning of the modified object
++code is in no case prevented or interfered with solely because
++modification has been made.
++
++  If you convey an object code work under this section in, or with, or
++specifically for use in, a User Product, and the conveying occurs as
++part of a transaction in which the right of possession and use of the
++User Product is transferred to the recipient in perpetuity or for a
++fixed term (regardless of how the transaction is characterized), the
++Corresponding Source conveyed under this section must be accompanied
++by the Installation Information.  But this requirement does not apply
++if neither you nor any third party retains the ability to install
++modified object code on the User Product (for example, the work has
++been installed in ROM).
++
++  The requirement to provide Installation Information does not include a
++requirement to continue to provide support service, warranty, or updates
++for a work that has been modified or installed by the recipient, or for
++the User Product in which it has been modified or installed.  Access to a
++network may be denied when the modification itself materially and
++adversely affects the operation of the network or violates the rules and
++protocols for communication across the network.
++
++  Corresponding Source conveyed, and Installation Information provided,
++in accord with this section must be in a format that is publicly
++documented (and with an implementation available to the public in
++source code form), and must require no special password or key for
++unpacking, reading or copying.
++
++  7. Additional Terms.
++
++  "Additional permissions" are terms that supplement the terms of this
++License by making exceptions from one or more of its conditions.
++Additional permissions that are applicable to the entire Program shall
++be treated as though they were included in this License, to the extent
++that they are valid under applicable law.  If additional permissions
++apply only to part of the Program, that part may be used separately
++under those permissions, but the entire Program remains governed by
++this License without regard to the additional permissions.
++
++  When you convey a copy of a covered work, you may at your option
++remove any additional permissions from that copy, or from any part of
++it.  (Additional permissions may be written to require their own
++removal in certain cases when you modify the work.)  You may place
++additional permissions on material, added by you to a covered work,
++for which you have or can give appropriate copyright permission.
++
++  Notwithstanding any other provision of this License, for material you
++add to a covered work, you may (if authorized by the copyright holders of
++that material) supplement the terms of this License with terms:
++
++    a) Disclaiming warranty or limiting liability differently from the
++    terms of sections 15 and 16 of this License; or
++
++    b) Requiring preservation of specified reasonable legal notices or
++    author attributions in that material or in the Appropriate Legal
++    Notices displayed by works containing it; or
++
++    c) Prohibiting misrepresentation of the origin of that material, or
++    requiring that modified versions of such material be marked in
++    reasonable ways as different from the original version; or
++
++    d) Limiting the use for publicity purposes of names of licensors or
++    authors of the material; or
++
++    e) Declining to grant rights under trademark law for use of some
++    trade names, trademarks, or service marks; or
++
++    f) Requiring indemnification of licensors and authors of that
++    material by anyone who conveys the material (or modified versions of
++    it) with contractual assumptions of liability to the recipient, for
++    any liability that these contractual assumptions directly impose on
++    those licensors and authors.
++
++  All other non-permissive additional terms are considered "further
++restrictions" within the meaning of section 10.  If the Program as you
++received it, or any part of it, contains a notice stating that it is
++governed by this License along with a term that is a further
++restriction, you may remove that term.  If a license document contains
++a further restriction but permits relicensing or conveying under this
++License, you may add to a covered work material governed by the terms
++of that license document, provided that the further restriction does
++not survive such relicensing or conveying.
++
++  If you add terms to a covered work in accord with this section, you
++must place, in the relevant source files, a statement of the
++additional terms that apply to those files, or a notice indicating
++where to find the applicable terms.
++
++  Additional terms, permissive or non-permissive, may be stated in the
++form of a separately written license, or stated as exceptions;
++the above requirements apply either way.
++
++  8. Termination.
++
++  You may not propagate or modify a covered work except as expressly
++provided under this License.  Any attempt otherwise to propagate or
++modify it is void, and will automatically terminate your rights under
++this License (including any patent licenses granted under the third
++paragraph of section 11).
++
++  However, if you cease all violation of this License, then your
++license from a particular copyright holder is reinstated (a)
++provisionally, unless and until the copyright holder explicitly and
++finally terminates your license, and (b) permanently, if the copyright
++holder fails to notify you of the violation by some reasonable means
++prior to 60 days after the cessation.
++
++  Moreover, your license from a particular copyright holder is
++reinstated permanently if the copyright holder notifies you of the
++violation by some reasonable means, this is the first time you have
++received notice of violation of this License (for any work) from that
++copyright holder, and you cure the violation prior to 30 days after
++your receipt of the notice.
++
++  Termination of your rights under this section does not terminate the
++licenses of parties who have received copies or rights from you under
++this License.  If your rights have been terminated and not permanently
++reinstated, you do not qualify to receive new licenses for the same
++material under section 10.
++
++  9. Acceptance Not Required for Having Copies.
++
++  You are not required to accept this License in order to receive or
++run a copy of the Program.  Ancillary propagation of a covered work
++occurring solely as a consequence of using peer-to-peer transmission
++to receive a copy likewise does not require acceptance.  However,
++nothing other than this License grants you permission to propagate or
++modify any covered work.  These actions infringe copyright if you do
++not accept this License.  Therefore, by modifying or propagating a
++covered work, you indicate your acceptance of this License to do so.
++
++  10. Automatic Licensing of Downstream Recipients.
++
++  Each time you convey a covered work, the recipient automatically
++receives a license from the original licensors, to run, modify and
++propagate that work, subject to this License.  You are not responsible
++for enforcing compliance by third parties with this License.
++
++  An "entity transaction" is a transaction transferring control of an
++organization, or substantially all assets of one, or subdividing an
++organization, or merging organizations.  If propagation of a covered
++work results from an entity transaction, each party to that
++transaction who receives a copy of the work also receives whatever
++licenses to the work the party's predecessor in interest had or could
++give under the previous paragraph, plus a right to possession of the
++Corresponding Source of the work from the predecessor in interest, if
++the predecessor has it or can get it with reasonable efforts.
++
++  You may not impose any further restrictions on the exercise of the
++rights granted or affirmed under this License.  For example, you may
++not impose a license fee, royalty, or other charge for exercise of
++rights granted under this License, and you may not initiate litigation
++(including a cross-claim or counterclaim in a lawsuit) alleging that
++any patent claim is infringed by making, using, selling, offering for
++sale, or importing the Program or any portion of it.
++
++  11. Patents.
++
++  A "contributor" is a copyright holder who authorizes use under this
++License of the Program or a work on which the Program is based.  The
++work thus licensed is called the contributor's "contributor version".
++
++  A contributor's "essential patent claims" are all patent claims
++owned or controlled by the contributor, whether already acquired or
++hereafter acquired, that would be infringed by some manner, permitted
++by this License, of making, using, or selling its contributor version,
++but do not include claims that would be infringed only as a
++consequence of further modification of the contributor version.  For
++purposes of this definition, "control" includes the right to grant
++patent sublicenses in a manner consistent with the requirements of
++this License.
++
++  Each contributor grants you a non-exclusive, worldwide, royalty-free
++patent license under the contributor's essential patent claims, to
++make, use, sell, offer for sale, import and otherwise run, modify and
++propagate the contents of its contributor version.
++
++  In the following three paragraphs, a "patent license" is any express
++agreement or commitment, however denominated, not to enforce a patent
++(such as an express permission to practice a patent or covenant not to
++sue for patent infringement).  To "grant" such a patent license to a
++party means to make such an agreement or commitment not to enforce a
++patent against the party.
++
++  If you convey a covered work, knowingly relying on a patent license,
++and the Corresponding Source of the work is not available for anyone
++to copy, free of charge and under the terms of this License, through a
++publicly available network server or other readily accessible means,
++then you must either (1) cause the Corresponding Source to be so
++available, or (2) arrange to deprive yourself of the benefit of the
++patent license for this particular work, or (3) arrange, in a manner
++consistent with the requirements of this License, to extend the patent
++license to downstream recipients.  "Knowingly relying" means you have
++actual knowledge that, but for the patent license, your conveying the
++covered work in a country, or your recipient's use of the covered work
++in a country, would infringe one or more identifiable patents in that
++country that you have reason to believe are valid.
++
++  If, pursuant to or in connection with a single transaction or
++arrangement, you convey, or propagate by procuring conveyance of, a
++covered work, and grant a patent license to some of the parties
++receiving the covered work authorizing them to use, propagate, modify
++or convey a specific copy of the covered work, then the patent license
++you grant is automatically extended to all recipients of the covered
++work and works based on it.
++
++  A patent license is "discriminatory" if it does not include within
++the scope of its coverage, prohibits the exercise of, or is
++conditioned on the non-exercise of one or more of the rights that are
++specifically granted under this License.  You may not convey a covered
++work if you are a party to an arrangement with a third party that is
++in the business of distributing software, under which you make payment
++to the third party based on the extent of your activity of conveying
++the work, and under which the third party grants, to any of the
++parties who would receive the covered work from you, a discriminatory
++patent license (a) in connection with copies of the covered work
++conveyed by you (or copies made from those copies), or (b) primarily
++for and in connection with specific products or compilations that
++contain the covered work, unless you entered into that arrangement,
++or that patent license was granted, prior to 28 March 2007.
++
++  Nothing in this License shall be construed as excluding or limiting
++any implied license or other defenses to infringement that may
++otherwise be available to you under applicable patent law.
++
++  12. No Surrender of Others' Freedom.
++
++  If conditions are imposed on you (whether by court order, agreement or
++otherwise) that contradict the conditions of this License, they do not
++excuse you from the conditions of this License.  If you cannot convey a
++covered work so as to satisfy simultaneously your obligations under this
++License and any other pertinent obligations, then as a consequence you may
++not convey it at all.  For example, if you agree to terms that obligate you
++to collect a royalty for further conveying from those to whom you convey
++the Program, the only way you could satisfy both those terms and this
++License would be to refrain entirely from conveying the Program.
++
++  13. Remote Network Interaction; Use with the GNU General Public License.
++
++  Notwithstanding any other provision of this License, if you modify the
++Program, your modified version must prominently offer all users
++interacting with it remotely through a computer network (if your version
++supports such interaction) an opportunity to receive the Corresponding
++Source of your version by providing access to the Corresponding Source
++from a network server at no charge, through some standard or customary
++means of facilitating copying of software.  This Corresponding Source
++shall include the Corresponding Source for any work covered by version 3
++of the GNU General Public License that is incorporated pursuant to the
++following paragraph.
++
++  Notwithstanding any other provision of this License, you have
++permission to link or combine any covered work with a work licensed
++under version 3 of the GNU General Public License into a single
++combined work, and to convey the resulting work.  The terms of this
++License will continue to apply to the part which is the covered work,
++but the work with which it is combined will remain governed by version
++3 of the GNU General Public License.
++
++  14. Revised Versions of this License.
++
++  The Free Software Foundation may publish revised and/or new versions of
++the GNU Affero General Public License from time to time.  Such new versions
++will be similar in spirit to the present version, but may differ in detail to
++address new problems or concerns.
++
++  Each version is given a distinguishing version number.  If the
++Program specifies that a certain numbered version of the GNU Affero General
++Public License "or any later version" applies to it, you have the
++option of following the terms and conditions either of that numbered
++version or of any later version published by the Free Software
++Foundation.  If the Program does not specify a version number of the
++GNU Affero General Public License, you may choose any version ever published
++by the Free Software Foundation.
++
++  If the Program specifies that a proxy can decide which future
++versions of the GNU Affero General Public License can be used, that proxy's
++public statement of acceptance of a version permanently authorizes you
++to choose that version for the Program.
++
++  Later license versions may give you additional or different
++permissions.  However, no additional obligations are imposed on any
++author or copyright holder as a result of your choosing to follow a
++later version.
++
++  15. Disclaimer of Warranty.
++
++  THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY
++APPLICABLE LAW.  EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT
++HOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM "AS IS" WITHOUT WARRANTY
++OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO,
++THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
++PURPOSE.  THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE PROGRAM
++IS WITH YOU.  SHOULD THE PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF
++ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
++
++  16. Limitation of Liability.
++
++  IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
++WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MODIFIES AND/OR CONVEYS
++THE PROGRAM AS PERMITTED ABOVE, BE LIABLE TO YOU FOR DAMAGES, INCLUDING ANY
++GENERAL, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES ARISING OUT OF THE
++USE OR INABILITY TO USE THE PROGRAM (INCLUDING BUT NOT LIMITED TO LOSS OF
++DATA OR DATA BEING RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD
++PARTIES OR A FAILURE OF THE PROGRAM TO OPERATE WITH ANY OTHER PROGRAMS),
++EVEN IF SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF
++SUCH DAMAGES.
++
++  17. Interpretation of Sections 15 and 16.
++
++  If the disclaimer of warranty and limitation of liability provided
++above cannot be given local legal effect according to their terms,
++reviewing courts shall apply local law that most closely approximates
++an absolute waiver of all civil liability in connection with the
++Program, unless a warranty or assumption of liability accompanies a
++copy of the Program in return for a fee.
++
++                     END OF TERMS AND CONDITIONS
++
++            How to Apply These Terms to Your New Programs
++
++  If you develop a new program, and you want it to be of the greatest
++possible use to the public, the best way to achieve this is to make it
++free software which everyone can redistribute and change under these terms.
++
++  To do so, attach the following notices to the program.  It is safest
++to attach them to the start of each source file to most effectively
++state the exclusion of warranty; and each file should have at least
++the "copyright" line and a pointer to where the full notice is found.
++
++    <one line to give the program's name and a brief idea of what it does.>
++    Copyright (C) <year>  <name of author>
++
++    This program is free software: you can redistribute it and/or modify
++    it under the terms of the GNU Affero General Public License as published
++    by the Free Software Foundation, either version 3 of the License, or
++    (at your option) any later version.
++
++    This program is distributed in the hope that it will be useful,
++    but WITHOUT ANY WARRANTY; without even the implied warranty of
++    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++    GNU Affero General Public License for more details.
++
++    You should have received a copy of the GNU Affero General Public License
++    along with this program.  If not, see <https://www.gnu.org/licenses/>.
++
++Also add information on how to contact you by electronic and paper mail.
++
++  If your software can interact with users remotely through a computer
++network, you should also make sure that it provides a way for users to
++get its source.  For example, if your program is a web application, its
++interface could display a "Source" link that leads users to an archive
++of the code.  There are many ways you could offer source, and different
++solutions will be better for different programs; see section 13 for the
++specific requirements.
++
++  You should also get your employer (if you work as a programmer) or school,
++if any, to sign a "copyright disclaimer" for the program, if necessary.
++For more information on this, and how to apply and follow the GNU AGPL, see
++<https://www.gnu.org/licenses/>.
+diff --git a/api/src/main/java/com/velocitypowered/api/network/ProtocolVersion.java b/api/src/main/java/com/velocitypowered/api/network/ProtocolVersion.java
+index 8b3632f9..7cf0f237 100644
+--- a/api/src/main/java/com/velocitypowered/api/network/ProtocolVersion.java
++++ b/api/src/main/java/com/velocitypowered/api/network/ProtocolVersion.java
+@@ -229,6 +229,28 @@ public enum ProtocolVersion {
+     return this == LEGACY;
+   }
+ 
++  //BotFilter start
++  public boolean isBefore(ProtocolVersion other) {
++    return this.compareTo(other) < 0;
++  }
++
++  public boolean isBeforeOrEq(ProtocolVersion other) {
++    return this.compareTo(other) <= 0;
++  }
++
++  public boolean isAfter(ProtocolVersion other) {
++    return this.compareTo(other) > 0;
++  }
++
++  public boolean isAfterOrEq(ProtocolVersion other) {
++    return this.compareTo(other) >= 0;
++  }
++  //BotFilter add
++
++  public static ProtocolVersion adapt(int protocol) {
++    return ID_TO_PROTOCOL_CONSTANT.get(protocol);
++  }
++
+   @Override
+   public String toString() {
+     return getVersionIntroducedIn();
+diff --git a/native/src/main/java/com/velocitypowered/natives/compression/Java11VelocityCompressor.java b/native/src/main/java/com/velocitypowered/natives/compression/Java11VelocityCompressor.java
+index be3ed64e..cc450b1a 100644
+--- a/native/src/main/java/com/velocitypowered/natives/compression/Java11VelocityCompressor.java
++++ b/native/src/main/java/com/velocitypowered/natives/compression/Java11VelocityCompressor.java
+@@ -66,6 +66,7 @@ public class Java11VelocityCompressor implements VelocityCompressor {
+   private boolean disposed = false;
+ 
+   private Java11VelocityCompressor(int level) {
++    level = Math.min(9, level); //BotFilter
+     this.deflater = new Deflater(level);
+     this.inflater = new Inflater();
+   }
+diff --git a/native/src/main/java/com/velocitypowered/natives/compression/JavaVelocityCompressor.java b/native/src/main/java/com/velocitypowered/natives/compression/JavaVelocityCompressor.java
+index 97127d25..96084c96 100644
+--- a/native/src/main/java/com/velocitypowered/natives/compression/JavaVelocityCompressor.java
++++ b/native/src/main/java/com/velocitypowered/natives/compression/JavaVelocityCompressor.java
+@@ -37,6 +37,7 @@ public class JavaVelocityCompressor implements VelocityCompressor {
+   private boolean disposed = false;
+ 
+   private JavaVelocityCompressor(int level) {
++    level = Math.min(9, level); //BotFilter
+     this.deflater = new Deflater(level);
+     this.inflater = new Inflater();
+   }
+diff --git a/proxy/build.gradle b/proxy/build.gradle
+index e4e91469..67617302 100644
+--- a/proxy/build.gradle
++++ b/proxy/build.gradle
+@@ -2,14 +2,17 @@ import com.github.jengelman.gradle.plugins.shadow.transformers.Log4j2PluginsCach
+ 
+ plugins {
+     id 'java'
+-    id 'checkstyle'
++    //id 'checkstyle'
+ }
+ 
+ apply plugin: 'org.cadixdev.licenser'
+-apply from: '../gradle/checkstyle.gradle'
++//apply from: '../gradle/checkstyle.gradle'
+ apply plugin: 'com.github.johnrengelman.shadow'
+ 
+ license {
++    matching(includes: ['**/botfilter/**']) {
++        header = project.rootProject.file('HEADER_BOTFILTER.txt')
++    }
+     header = project.rootProject.file('HEADER.txt')
+ }
+ 
+@@ -43,10 +46,10 @@ jar {
+ shadowJar {
+     transform(Log4j2PluginsCacheFileTransformer)
+ }
++//tasks.withType(Checkstyle) {
++//    exclude('**/com/velocitypowered/proxy/protocol/packet/*.java')
++//}
+ 
+-tasks.withType(Checkstyle) {
+-    exclude('**/com/velocitypowered/proxy/protocol/packet/*.java')
+-}
+ 
+ dependencies {
+     // Note: we depend on the API twice, first the main sourceset, and then the annotation processor.
+diff --git a/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java b/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java
+index 8cf5adea..942a4869 100644
+--- a/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java
++++ b/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java
+@@ -101,6 +101,7 @@ import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+ import org.checkerframework.checker.nullness.qual.NonNull;
+ import org.checkerframework.checker.nullness.qual.Nullable;
++import ru.leymooo.botfilter.BotFilter;
+ 
+ public class VelocityServer implements ProxyServer, ForwardingAudience {
+ 
+@@ -140,6 +141,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
+   private final VelocityEventManager eventManager;
+   private final VelocityScheduler scheduler;
+   private final VelocityChannelRegistrar channelRegistrar = new VelocityChannelRegistrar();
++  private @MonotonicNonNull BotFilter botFilter; //BotFilter
+ 
+   VelocityServer(final ProxyOptions options) {
+     pluginManager = new VelocityPluginManager(this);
+@@ -217,6 +219,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
+ 
+     this.doStartupConfigLoad();
+ 
++    this.botFilter = new BotFilter(this); //BotFilter init
++
+     for (Map.Entry<String, String> entry : configuration.getServers().entrySet()) {
+       servers.register(new ServerInfo(entry.getKey(), AddressUtil.parseAddress(entry.getValue())));
+     }
+@@ -680,6 +684,11 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
+     return bossBarManager;
+   }
+ 
++  //BotFilter - add getter
++  public BotFilter getBotFilter() {
++    return botFilter;
++  }
++
+   public static Gson getPingGsonInstance(ProtocolVersion version) {
+     return version.compareTo(ProtocolVersion.MINECRAFT_1_16) >= 0 ? POST_1_16_PING_SERIALIZER
+         : PRE_1_16_PING_SERIALIZER;
+diff --git a/proxy/src/main/java/com/velocitypowered/proxy/connection/MinecraftSessionHandler.java b/proxy/src/main/java/com/velocitypowered/proxy/connection/MinecraftSessionHandler.java
+index 3dcb3807..d529ba9f 100644
+--- a/proxy/src/main/java/com/velocitypowered/proxy/connection/MinecraftSessionHandler.java
++++ b/proxy/src/main/java/com/velocitypowered/proxy/connection/MinecraftSessionHandler.java
+@@ -48,6 +48,7 @@ import com.velocitypowered.proxy.protocol.packet.TabCompleteRequest;
+ import com.velocitypowered.proxy.protocol.packet.TabCompleteResponse;
+ import com.velocitypowered.proxy.protocol.packet.TitlePacket;
+ import io.netty.buffer.ByteBuf;
++import ru.leymooo.botfilter.protocol.packet.PlayerPositionAndLook;
+ 
+ public interface MinecraftSessionHandler {
+ 
+@@ -206,4 +207,10 @@ public interface MinecraftSessionHandler {
+   default boolean handle(ResourcePackResponse packet) {
+     return false;
+   }
++
++  //BotFilter start - add handle methods
++  default boolean handle(PlayerPositionAndLook packet) {
++    return false;
++  }
++  //BotFilter end
+ }
+diff --git a/proxy/src/main/java/com/velocitypowered/proxy/connection/client/LoginSessionHandler.java b/proxy/src/main/java/com/velocitypowered/proxy/connection/client/LoginSessionHandler.java
+index c1967e85..7a5d8790 100644
+--- a/proxy/src/main/java/com/velocitypowered/proxy/connection/client/LoginSessionHandler.java
++++ b/proxy/src/main/java/com/velocitypowered/proxy/connection/client/LoginSessionHandler.java
+@@ -51,6 +51,7 @@ import com.velocitypowered.proxy.protocol.packet.ServerLogin;
+ import com.velocitypowered.proxy.protocol.packet.ServerLoginSuccess;
+ import com.velocitypowered.proxy.protocol.packet.SetCompression;
+ import io.netty.buffer.ByteBuf;
++import java.net.InetAddress;
+ import java.net.InetSocketAddress;
+ import java.security.GeneralSecurityException;
+ import java.security.KeyPair;
+@@ -227,10 +228,10 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
+         onlineMode);
+     final GameProfile finalProfile = profile;
+ 
+-    server.getEventManager().fire(profileRequestEvent).thenComposeAsync(profileEvent -> {
++    server.getEventManager().fire(profileRequestEvent).thenAcceptAsync(profileEvent -> {
+       if (mcConnection.isClosed()) {
+-        // The player disconnected after we authenticated them.
+-        return CompletableFuture.completedFuture(null);
++        // The player disconnected while event execution
++        return;
+       }
+ 
+       // Initiate a regular connection and move over to it.
+@@ -239,37 +240,19 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
+       this.connectedPlayer = player;
+       if (!server.canRegisterConnection(player)) {
+         player.disconnect0(server.getConfiguration().getMessages().getAlreadyConnected(), true);
+-        return CompletableFuture.completedFuture(null);
++        return;
+       }
+ 
+       logger.info("{} has connected", player);
++      injectBotFilterOrFinishLogin(player);
+ 
+-      return server.getEventManager()
+-          .fire(new PermissionsSetupEvent(player, ConnectedPlayer.DEFAULT_PERMISSIONS))
+-          .thenAcceptAsync(event -> {
+-            if (!mcConnection.isClosed()) {
+-              // wait for permissions to load, then set the players permission function
+-              final PermissionFunction function = event.createFunction(player);
+-              if (function == null) {
+-                logger.error(
+-                    "A plugin permission provider {} provided an invalid permission function"
+-                        + " for player {}. This is a bug in the plugin, not in Velocity. Falling"
+-                        + " back to the default permission function.",
+-                    event.getProvider().getClass().getName(),
+-                    player.getUsername());
+-              } else {
+-                player.setPermissionFunction(function);
+-              }
+-              completeLoginProtocolPhaseAndInitialize(player);
+-            }
+-          }, mcConnection.eventLoop());
+     }, mcConnection.eventLoop()).exceptionally((ex) -> {
+       logger.error("Exception during connection of {}", finalProfile, ex);
+       return null;
+-    });  
++    });
+   }
+ 
+-  private void completeLoginProtocolPhaseAndInitialize(ConnectedPlayer player) {
++  private void injectBotFilterOrFinishLogin(ConnectedPlayer player) {
+     int threshold = server.getConfiguration().getCompressionThreshold();
+     if (threshold >= 0 && mcConnection.getProtocolVersion().compareTo(MINECRAFT_1_8) >= 0) {
+       mcConnection.write(new SetCompression(threshold));
+@@ -285,36 +268,63 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
+     success.setUuid(playerUniqueId);
+     mcConnection.write(success);
+ 
++    if (server.getBotFilter().shouldCheck(player)) {
++      server.getBotFilter().setupPipelineAndStartCheck(player);
++    } else {
++      completeLoginProtocolPhaseAndInitialize(player);
++    }
++  }
++
++
++  private void completeLoginProtocolPhaseAndInitialize(ConnectedPlayer player) {
+     mcConnection.setAssociation(player);
+     mcConnection.setState(StateRegistry.PLAY);
+-
+-    server.getEventManager().fire(new LoginEvent(player))
+-        .thenAcceptAsync(event -> {
++    server.getEventManager()
++        .fire(new PermissionsSetupEvent(player, ConnectedPlayer.DEFAULT_PERMISSIONS))
++        .thenComposeAsync(premissionEvent -> {
+           if (mcConnection.isClosed()) {
+-            // The player was disconnected
+-            server.getEventManager().fireAndForget(new DisconnectEvent(player,
+-                LoginStatus.CANCELLED_BY_USER_BEFORE_COMPLETE));
+-            return;
++            return CompletableFuture.completedFuture(null);
+           }
+-
+-          Optional<Component> reason = event.getResult().getReasonComponent();
+-          if (reason.isPresent()) {
+-            player.disconnect0(reason.get(), true);
++          // wait for permissions to load, then set the players permission function
++          final PermissionFunction function = premissionEvent.createFunction(player);
++          if (function == null) {
++            logger.error(
++                "A plugin permission provider {} provided an invalid permission function"
++                    + " for player {}. This is a bug in the plugin, not in Velocity. Falling"
++                    + " back to the default permission function.",
++                premissionEvent.getProvider().getClass().getName(),
++                player.getUsername());
+           } else {
+-            if (!server.registerConnection(player)) {
+-              player.disconnect0(server.getConfiguration().getMessages()
+-                      .getAlreadyConnected(), true);
+-              return;
+-            }
+-
+-            mcConnection.setSessionHandler(new InitialConnectSessionHandler(player));
+-            server.getEventManager().fire(new PostLoginEvent(player))
+-                .thenCompose((ignored) -> connectToInitialServer(player))
+-                .exceptionally((ex) -> {
+-                  logger.error("Exception while connecting {} to initial server", player, ex);
+-                  return null;
+-                });
++            player.setPermissionFunction(function);
+           }
++          return server.getEventManager().fire(new LoginEvent(player))
++              .thenAcceptAsync(event -> {
++                if (mcConnection.isClosed()) {
++                  // The player was disconnected
++                  server.getEventManager().fireAndForget(new DisconnectEvent(player,
++                      LoginStatus.CANCELLED_BY_USER_BEFORE_COMPLETE));
++                  return;
++                }
++
++                Optional<Component> reason = event.getResult().getReasonComponent();
++                if (reason.isPresent()) {
++                  player.disconnect0(reason.get(), true);
++                } else {
++                  if (!server.registerConnection(player)) {
++                    player.disconnect0(server.getConfiguration().getMessages()
++                        .getAlreadyConnected(), true);
++                    return;
++                  }
++
++                  mcConnection.setSessionHandler(new InitialConnectSessionHandler(player));
++                  server.getEventManager().fire(new PostLoginEvent(player))
++                      .thenCompose((ignored) -> connectToInitialServer(player))
++                      .exceptionally((ex) -> {
++                        logger.error("Exception while connecting {} to initial server", player, ex);
++                        return null;
++                      });
++                }
++              }, mcConnection.eventLoop());
+         }, mcConnection.eventLoop())
+         .exceptionally((ex) -> {
+           logger.error("Exception while completing login initialisation phase for {}", player, ex);
+@@ -332,7 +342,7 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
+           Optional<RegisteredServer> toTry = event.getInitialServer();
+           if (!toTry.isPresent()) {
+             player.disconnect0(server.getConfiguration().getMessages()
+-                    .getNoAvailableServers(), true);
++                .getNoAvailableServers(), true);
+             return;
+           }
+           player.createConnectionRequest(toTry.get()).fireAndForget();
+diff --git a/proxy/src/main/java/com/velocitypowered/proxy/protocol/MinecraftPacket.java b/proxy/src/main/java/com/velocitypowered/proxy/protocol/MinecraftPacket.java
+index 7115bb8b..7b2184d9 100644
+--- a/proxy/src/main/java/com/velocitypowered/proxy/protocol/MinecraftPacket.java
++++ b/proxy/src/main/java/com/velocitypowered/proxy/protocol/MinecraftPacket.java
+@@ -19,15 +19,24 @@ package com.velocitypowered.proxy.protocol;
+ 
+ import com.velocitypowered.api.network.ProtocolVersion;
+ import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
++import com.velocitypowered.proxy.protocol.ProtocolUtils.Direction;
+ import io.netty.buffer.ByteBuf;
+ 
+ public interface MinecraftPacket {
+ 
+-  void decode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion);
++  //BotFilter start - add default to methods
++  default void decode(ByteBuf buf, Direction direction, ProtocolVersion protocolVersion) {
++    throw new UnsupportedOperationException();
++  }
+ 
+-  void encode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion);
++  default void encode(ByteBuf buf, Direction direction, ProtocolVersion protocolVersion) {
++    throw new UnsupportedOperationException();
++  }
+ 
+-  boolean handle(MinecraftSessionHandler handler);
++  default boolean handle(MinecraftSessionHandler handler) {
++    throw new UnsupportedOperationException();
++  }
++  //BotFilter end
+ 
+   default int expectedMaxLength(ByteBuf buf, ProtocolUtils.Direction direction,
+       ProtocolVersion version) {
+diff --git a/proxy/src/main/java/com/velocitypowered/proxy/protocol/StateRegistry.java b/proxy/src/main/java/com/velocitypowered/proxy/protocol/StateRegistry.java
+index 87bc5d09..28c8b79a 100644
+--- a/proxy/src/main/java/com/velocitypowered/proxy/protocol/StateRegistry.java
++++ b/proxy/src/main/java/com/velocitypowered/proxy/protocol/StateRegistry.java
+@@ -265,7 +265,7 @@ public enum StateRegistry {
+       clientbound.register(LoginPluginMessage.class, LoginPluginMessage::new,
+           map(0x04, MINECRAFT_1_13, false));
+     }
+-  };
++  }, BotFilter{}; //BotFilter custom state registry
+ 
+   public static final int STATUS_ID = 1;
+   public static final int LOGIN_ID = 2;
+@@ -291,7 +291,8 @@ public enum StateRegistry {
+       this.versions = Collections.unmodifiableMap(mutableVersions);
+     }
+ 
+-    ProtocolRegistry getProtocolRegistry(final ProtocolVersion version) {
++    //BotFilter public
++    public ProtocolRegistry getProtocolRegistry(final ProtocolVersion version) {
+       ProtocolRegistry registry = versions.get(version);
+       if (registry == null) {
+         if (fallback) {
+@@ -302,7 +303,8 @@ public enum StateRegistry {
+       return registry;
+     }
+ 
+-    <P extends MinecraftPacket> void register(Class<P> clazz, Supplier<P> packetSupplier,
++    //BotFilter public
++    public <P extends MinecraftPacket> void register(Class<P> clazz, Supplier<P> packetSupplier,
+         PacketMapping... mappings) {
+       if (mappings.length == 0) {
+         throw new IllegalArgumentException("At least one mapping must be provided.");
+@@ -376,7 +378,7 @@ public enum StateRegistry {
+       }
+ 
+       /**
+-       * Attempts to look up the packet ID for an {@code packet}.
++       * Attempts to look up the packet ID for a {@code packet}.
+        *
+        * @param packet the packet to look up
+        * @return the packet ID
+@@ -392,6 +394,23 @@ public enum StateRegistry {
+         }
+         return id;
+       }
++      /**
++       * Attempts to look up the packet ID for a {@code packet} class.
++       *
++       * @param clazz the packet class to look up
++       * @return the packet ID
++       * @throws IllegalArgumentException if the packet ID is not found
++       */
++      public int getPacketId(final Class<? extends MinecraftPacket> clazz) {
++        final int id = this.packetClassToId.getInt(clazz);
++        if (id == Integer.MIN_VALUE) {
++          throw new IllegalArgumentException(String.format(
++              "Unable to find id for packet of type %s in %s protocol %s",
++              clazz.getName(), PacketRegistry.this.direction, this.version
++          ));
++        }
++        return id;
++      }
+     }
+   }
+ 
+@@ -444,7 +463,8 @@ public enum StateRegistry {
+    * @param encodeOnly When true packet decoding will be disabled
+    * @return PacketMapping with the provided arguments
+    */
+-  private static PacketMapping map(int id, ProtocolVersion version, boolean encodeOnly) {
++  //BotFilter public
++  public static PacketMapping map(int id, ProtocolVersion version, boolean encodeOnly) {
+     return new PacketMapping(id, version, encodeOnly);
+   }
+ 
+diff --git a/proxy/src/main/java/com/velocitypowered/proxy/protocol/netty/MinecraftVarintLengthEncoder.java b/proxy/src/main/java/com/velocitypowered/proxy/protocol/netty/MinecraftVarintLengthEncoder.java
+index 867ea9b7..9559b63e 100644
+--- a/proxy/src/main/java/com/velocitypowered/proxy/protocol/netty/MinecraftVarintLengthEncoder.java
++++ b/proxy/src/main/java/com/velocitypowered/proxy/protocol/netty/MinecraftVarintLengthEncoder.java
+@@ -36,6 +36,7 @@ public class MinecraftVarintLengthEncoder extends MessageToByteEncoder<ByteBuf>
+ 
+   @Override
+   protected void encode(ChannelHandlerContext ctx, ByteBuf msg, ByteBuf out) throws Exception {
++    System.out.println("encoding");
+     ProtocolUtils.writeVarInt(out, msg.readableBytes());
+     out.writeBytes(msg);
+   }
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/BotFilter.java b/proxy/src/main/java/ru/leymooo/botfilter/BotFilter.java
+new file mode 100644
+index 00000000..33afc7e0
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/BotFilter.java
+@@ -0,0 +1,89 @@
++/*
++ * Velocity-BotFilter
++ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package ru.leymooo.botfilter;
++
++import com.velocitypowered.proxy.VelocityServer;
++import com.velocitypowered.proxy.connection.MinecraftConnection;
++import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
++import com.velocitypowered.proxy.network.Connections;
++import com.velocitypowered.proxy.protocol.StateRegistry;
++import io.netty.channel.ChannelPipeline;
++import java.net.InetAddress;
++import lombok.Getter;
++import lombok.ToString;
++import org.apache.logging.log4j.LogManager;
++import org.apache.logging.log4j.Logger;
++import ru.leymooo.botfilter.config.BotFilterConfiguration;
++import ru.leymooo.botfilter.protocol.netty.MultiplePreparedPacketsEncoder;
++import ru.leymooo.botfilter.protocol.netty.PreparedPacketEncoder;
++import ru.leymooo.botfilter.server.BotFilterSessionHandler;
++import ru.leymooo.botfilter.server.VirtualServer;
++
++@Getter
++@ToString
++public class BotFilter {
++
++  private static final Logger LOGGER = LogManager.getLogger("BotFilter");
++
++  private final VelocityServer velocityServer;
++  private final BotFilterConfiguration botFilterConfiguration;
++  private final VirtualServer virtualServer;
++
++
++  public BotFilter(VelocityServer velocityServer) {
++    LOGGER.info("BotFilter 1.0");
++    this.velocityServer = velocityServer;
++    this.botFilterConfiguration = BotFilterConfiguration.create();
++    this.virtualServer = new VirtualServer(this);
++  }
++
++  public boolean shouldCheck(ConnectedPlayer player) {
++    return true;
++  }
++
++  public void setupPipelineAndStartCheck(ConnectedPlayer player) {
++    try {
++      BotFilterSessionHandler sessionHandler = new BotFilterSessionHandler(player, virtualServer);
++      LOGGER.info(sessionHandler.getPlayer().getUsername());
++
++      MinecraftConnection connection = sessionHandler.getPlayer().getConnection();
++      connection.setState(StateRegistry.BotFilter);
++      connection.setSessionHandler(sessionHandler);
++
++      ChannelPipeline pipeline = connection.getChannel().pipeline();
++
++      System.out.println(pipeline.toMap());
++      if (sessionHandler.getPlayer().isOnlineMode()) {
++        pipeline.addBefore(Connections.CIPHER_ENCODER, "prepared-encoder",
++            PreparedPacketEncoder.getEncoder(connection.getProtocolVersion(), true));
++      } else {
++        pipeline.addFirst("prepared-encoder",
++            PreparedPacketEncoder.getEncoder(connection.getProtocolVersion(), false));
++        pipeline.addFirst("multipleprepared-encoder",
++            MultiplePreparedPacketsEncoder.getEncoder(connection.getProtocolVersion()));
++      }
++      System.out.println(pipeline.toMap());
++
++      virtualServer.spawnPlayer(sessionHandler);
++    } catch (Throwable t) {
++      LOGGER.error("Error", t);
++    }
++  }
++
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/config/BotFilterConfiguration.java b/proxy/src/main/java/ru/leymooo/botfilter/config/BotFilterConfiguration.java
+new file mode 100644
+index 00000000..90dd7e1d
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/config/BotFilterConfiguration.java
+@@ -0,0 +1,51 @@
++/*
++ * Velocity-BotFilter
++ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package ru.leymooo.botfilter.config;
++
++import java.io.File;
++import lombok.Getter;
++import lombok.ToString;
++import ru.leymooo.annotatedyaml.Annotations.Final;
++import ru.leymooo.annotatedyaml.Annotations.Key;
++import ru.leymooo.annotatedyaml.Configuration;
++import ru.leymooo.annotatedyaml.provider.StandaloneConfigurationProvider;
++import ru.leymooo.botfilter.protocol.util.PreparedPacket.OnlineModeSupport;
++
++@Getter
++@ToString
++public class BotFilterConfiguration extends Configuration {
++
++
++  @Final
++  @Key("config-version")
++  private final String configVersion = "1.0";
++
++  @Final
++  @Key("online-mode-support")
++  private OnlineModeSupport onlineModeSupport = OnlineModeSupport.OFFLINE_MODE_ONLY;
++
++
++  public static BotFilterConfiguration create() {
++    BotFilterConfiguration configuration = Configuration.builder(BotFilterConfiguration.class)
++        .file(new File("BotFilter", "config.yml"))
++        .provider(StandaloneConfigurationProvider.class)
++        .build();
++    return configuration;
++  }
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/BotFilterProtocol.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/BotFilterProtocol.java
+new file mode 100644
+index 00000000..865d695d
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/BotFilterProtocol.java
+@@ -0,0 +1,73 @@
++/*
++ * Velocity-BotFilter
++ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package ru.leymooo.botfilter.protocol;
++
++import static com.velocitypowered.api.network.ProtocolVersion.MINECRAFT_1_13;
++import static com.velocitypowered.api.network.ProtocolVersion.MINECRAFT_1_14;
++import static com.velocitypowered.api.network.ProtocolVersion.MINECRAFT_1_15;
++import static com.velocitypowered.api.network.ProtocolVersion.MINECRAFT_1_16;
++import static com.velocitypowered.api.network.ProtocolVersion.MINECRAFT_1_16_2;
++import static com.velocitypowered.api.network.ProtocolVersion.MINECRAFT_1_7_2;
++import static com.velocitypowered.api.network.ProtocolVersion.MINECRAFT_1_9;
++import static com.velocitypowered.proxy.protocol.StateRegistry.map;
++
++import com.velocitypowered.api.network.ProtocolVersion;
++import com.velocitypowered.proxy.protocol.StateRegistry;
++import ru.leymooo.botfilter.protocol.packet.JoinGame;
++import ru.leymooo.botfilter.protocol.packet.PlayerPositionAndLook;
++import ru.leymooo.botfilter.protocol.packet.world.EmptyChunk;
++
++public class BotFilterProtocol {
++
++  public static void init() {
++    StateRegistry.BotFilter.clientbound.register(
++        JoinGame.class, JoinGame::new,
++        map(0x01, MINECRAFT_1_7_2, false),
++        map(0x23, MINECRAFT_1_9, false),
++        map(0x25, MINECRAFT_1_13, false),
++        map(0x25, MINECRAFT_1_14, false),
++        map(0x26, MINECRAFT_1_15, false),
++        map(0x25, MINECRAFT_1_16, false),
++        map(0x24, MINECRAFT_1_16_2, false)
++    );
++    StateRegistry.BotFilter.clientbound.register(
++        PlayerPositionAndLook.class, PlayerPositionAndLook::new,
++        map(0x08, ProtocolVersion.MINECRAFT_1_7_2, true),
++        map(0x2E, ProtocolVersion.MINECRAFT_1_9, true),
++        map(0x2F, ProtocolVersion.MINECRAFT_1_12_1, true),
++        map(0x32, ProtocolVersion.MINECRAFT_1_13, true),
++        map(0x35, ProtocolVersion.MINECRAFT_1_14, true),
++        map(0x36, ProtocolVersion.MINECRAFT_1_15, true),
++        map(0x35, ProtocolVersion.MINECRAFT_1_16, true),
++        map(0x34, ProtocolVersion.MINECRAFT_1_16_2, true));
++
++    StateRegistry.BotFilter.clientbound.register(
++        EmptyChunk.class, EmptyChunk::new,
++        map(0x26, ProtocolVersion.MINECRAFT_1_7_2, true),
++        map(0x21, ProtocolVersion.MINECRAFT_1_8, true),
++        map(0x20, ProtocolVersion.MINECRAFT_1_9, true),
++        map(0x22, ProtocolVersion.MINECRAFT_1_13, true),
++        map(0x21, ProtocolVersion.MINECRAFT_1_14, true),
++        map(0x22, ProtocolVersion.MINECRAFT_1_15, true),
++        map(0x21, ProtocolVersion.MINECRAFT_1_16, true),
++        map(0x20, ProtocolVersion.MINECRAFT_1_16_2, true));
++
++  }
++
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/netty/MultiplePreparedPacketsEncoder.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/netty/MultiplePreparedPacketsEncoder.java
+new file mode 100644
+index 00000000..bb6364bb
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/netty/MultiplePreparedPacketsEncoder.java
+@@ -0,0 +1,68 @@
++/*
++ * Velocity-BotFilter
++ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package ru.leymooo.botfilter.protocol.netty;
++
++import com.velocitypowered.api.network.ProtocolVersion;
++import io.netty.buffer.ByteBuf;
++import io.netty.channel.ChannelHandler.Sharable;
++import io.netty.channel.ChannelHandlerContext;
++import io.netty.handler.codec.MessageToByteEncoder;
++import java.util.EnumMap;
++import java.util.Map;
++import lombok.RequiredArgsConstructor;
++import ru.leymooo.botfilter.protocol.util.MultiplePreparedPackets;
++import ru.leymooo.botfilter.protocol.util.ByteBufCreator;
++
++@Sharable
++@RequiredArgsConstructor
++public class MultiplePreparedPacketsEncoder extends MessageToByteEncoder<MultiplePreparedPackets> {
++
++
++  private static Map<ProtocolVersion, MultiplePreparedPacketsEncoder> encoders = new EnumMap<>(
++      ProtocolVersion.class);
++
++  static {
++    for (ProtocolVersion version : ProtocolVersion.SUPPORTED_VERSIONS) {
++      encoders.put(version, new MultiplePreparedPacketsEncoder(version));
++    }
++  }
++
++  private final ProtocolVersion protocolVersion;
++
++
++  @Override
++  protected void encode(ChannelHandlerContext ctx, MultiplePreparedPackets msg, ByteBuf out)
++      throws Exception {
++    System.out.println("encoding multiple prepared");
++    out.writeBytes(msg.getBuffer(protocolVersion));
++  }
++
++  @Override
++  protected ByteBuf allocateBuffer(ChannelHandlerContext ctx, MultiplePreparedPackets msg,
++      boolean preferDirect) throws Exception {
++    int length = msg.getBuffetLength(protocolVersion);
++    return ByteBufCreator.isDirectBufferPreferred() ? ctx.alloc().directBuffer(length)
++        : ctx.alloc().heapBuffer(length);
++  }
++
++
++  public static MultiplePreparedPacketsEncoder getEncoder(ProtocolVersion version) {
++    return encoders.get(version);
++  }
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/netty/PreparedPacketEncoder.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/netty/PreparedPacketEncoder.java
+new file mode 100644
+index 00000000..eb9ac9c7
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/netty/PreparedPacketEncoder.java
+@@ -0,0 +1,80 @@
++/*
++ * Velocity-BotFilter
++ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package ru.leymooo.botfilter.protocol.netty;
++
++import com.google.common.collect.HashBasedTable;
++import com.google.common.collect.Table;
++import com.velocitypowered.api.network.ProtocolVersion;
++import com.velocitypowered.natives.encryption.JavaVelocityCipher;
++import com.velocitypowered.natives.util.Natives;
++import io.netty.buffer.ByteBuf;
++import io.netty.channel.ChannelHandler.Sharable;
++import io.netty.channel.ChannelHandlerContext;
++import io.netty.handler.codec.MessageToByteEncoder;
++import lombok.RequiredArgsConstructor;
++import ru.leymooo.botfilter.protocol.util.ByteBufCreator;
++import ru.leymooo.botfilter.protocol.util.PreparedPacket;
++import ru.leymooo.botfilter.protocol.util.PreparedPacket.OnlineModeSupport;
++
++@Sharable
++@RequiredArgsConstructor
++public class PreparedPacketEncoder extends MessageToByteEncoder<PreparedPacket> {
++
++
++  private static final boolean IS_JAVA_CIPHER = Natives.cipher.get() == JavaVelocityCipher.FACTORY;
++  private static Table<ProtocolVersion, Boolean, PreparedPacketEncoder> encoders = HashBasedTable
++      .create(ProtocolVersion.SUPPORTED_VERSIONS.size(), 2);
++  private final ProtocolVersion protocolVersion;
++  private final boolean onlineMode;
++
++
++  @Override
++  protected void encode(ChannelHandlerContext ctx, PreparedPacket msg, ByteBuf out)
++      throws Exception {
++    System.out.println("encoding prepared");
++    out.writeBytes(msg.getBuffer(onlineMode, protocolVersion));
++  }
++
++  @Override
++  protected ByteBuf allocateBuffer(ChannelHandlerContext ctx, PreparedPacket msg,
++      boolean preferDirect) throws Exception {
++    int length = msg.getBufferLength(onlineMode, protocolVersion);
++    boolean direct = onlineMode ? IS_JAVA_CIPHER : ByteBufCreator.isDirectBufferPreferred();
++    return direct ? ctx.alloc().directBuffer(length) : ctx.alloc().heapBuffer(length);
++  }
++
++
++  public static void init(OnlineModeSupport onlineModeSupport) {
++
++    for (ProtocolVersion version : ProtocolVersion.SUPPORTED_VERSIONS) {
++      if (onlineModeSupport == OnlineModeSupport.BOTH) {
++        encoders.put(version, true, new PreparedPacketEncoder(version, true));
++        encoders.put(version, false, new PreparedPacketEncoder(version, false));
++      } else if (onlineModeSupport == OnlineModeSupport.ONLINE_MODE_ONLY) {
++        encoders.put(version, true, new PreparedPacketEncoder(version, true));
++      } else {
++        encoders.put(version, false, new PreparedPacketEncoder(version, false));
++      }
++    }
++  }
++
++  public static PreparedPacketEncoder getEncoder(ProtocolVersion version, boolean onlineMode) {
++    return encoders.get(version, onlineMode);
++  }
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/JoinGame.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/JoinGame.java
+new file mode 100644
+index 00000000..7dcce048
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/JoinGame.java
+@@ -0,0 +1,114 @@
++/*
++ * Velocity-BotFilter
++ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package ru.leymooo.botfilter.protocol.packet;
++
++import com.velocitypowered.api.network.ProtocolVersion;
++import com.velocitypowered.proxy.connection.registry.DimensionInfo;
++import com.velocitypowered.proxy.protocol.MinecraftPacket;
++import com.velocitypowered.proxy.protocol.ProtocolUtils;
++import io.netty.buffer.ByteBuf;
++import lombok.AllArgsConstructor;
++import lombok.Builder;
++import lombok.Getter;
++import lombok.NoArgsConstructor;
++import lombok.Setter;
++import lombok.ToString;
++import ru.leymooo.botfilter.protocol.registry.DimensionRegistry;
++
++
++@Getter
++@Setter
++@AllArgsConstructor
++@NoArgsConstructor
++@ToString
++@Builder
++public class JoinGame implements MinecraftPacket {
++
++  private int entityId;
++  private short gamemode;
++  private int dimension;
++  private long partialHashedSeed;
++  private short difficulty;
++  private boolean hardcore;
++  private int maxPlayers;
++  private String levelType;
++  private int viewDistance;
++  private boolean reducedDebugInfo;
++  private boolean showRespawnScreen;
++  private DimensionRegistry dimensionRegistry;
++  private short previousGamemode;
++
++
++  @Override
++  public void encode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
++    buf.writeInt(entityId);
++    if (version.isAfterOrEq(ProtocolVersion.MINECRAFT_1_16_2)) {
++      buf.writeBoolean(hardcore);
++      buf.writeByte(gamemode);
++    } else {
++      buf.writeByte(hardcore ? gamemode | 0x8 : gamemode);
++    }
++    DimensionInfo dimensionInfo = dimensionRegistry.getActiveDimensionInfo();
++    if (version.isAfterOrEq(ProtocolVersion.MINECRAFT_1_16)) {
++      buf.writeByte(previousGamemode);
++      ProtocolUtils.writeStringArray(buf,
++          dimensionRegistry.getWorldNames().toArray(new String[0])); //worldNames
++      ProtocolUtils.writeCompoundTag(buf, dimensionRegistry.encode(version));
++      if (version.isAfterOrEq(ProtocolVersion.MINECRAFT_1_16_2)) {
++        ProtocolUtils.writeCompoundTag(buf,
++            dimensionRegistry.getActiveDimension().encodeAttributes(version));
++        ProtocolUtils.writeString(buf, dimensionInfo.getRegistryIdentifier());
++      } else {
++        ProtocolUtils.writeString(buf, dimensionInfo.getRegistryIdentifier());
++        ProtocolUtils.writeString(buf, dimensionInfo.getLevelName());
++      }
++    } else if (version.isAfterOrEq(ProtocolVersion.MINECRAFT_1_9_1)) {
++      buf.writeInt(dimension);
++    } else {
++      buf.writeByte(dimension);
++    }
++    if (version.isBeforeOrEq(ProtocolVersion.MINECRAFT_1_13_2)) {
++      buf.writeByte(difficulty);
++    }
++    if (version.isAfterOrEq(ProtocolVersion.MINECRAFT_1_15)) {
++      buf.writeLong(partialHashedSeed);
++    }
++    if (version.isAfterOrEq(ProtocolVersion.MINECRAFT_1_16_2)) {
++      ProtocolUtils.writeVarInt(buf, maxPlayers);
++    } else {
++      buf.writeByte(maxPlayers);
++    }
++    if (version.isBefore(ProtocolVersion.MINECRAFT_1_16)) {
++      ProtocolUtils.writeString(buf, levelType);
++    }
++    if (version.isAfterOrEq(ProtocolVersion.MINECRAFT_1_14)) {
++      ProtocolUtils.writeVarInt(buf, viewDistance);
++    }
++    if (version.isAfterOrEq(ProtocolVersion.MINECRAFT_1_8)) {
++      buf.writeBoolean(reducedDebugInfo);
++    }
++    if (version.isAfterOrEq(ProtocolVersion.MINECRAFT_1_15)) {
++      buf.writeBoolean(showRespawnScreen);
++    }
++    if (version.isAfterOrEq(ProtocolVersion.MINECRAFT_1_16)) {
++      buf.writeBoolean(dimensionInfo.isDebugType());
++      buf.writeBoolean(dimensionInfo.isFlat());
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/PlayerPositionAndLook.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/PlayerPositionAndLook.java
+new file mode 100644
+index 00000000..658cd5da
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/PlayerPositionAndLook.java
+@@ -0,0 +1,84 @@
++/*
++ * Velocity-BotFilter
++ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package ru.leymooo.botfilter.protocol.packet;
++
++import com.velocitypowered.api.network.ProtocolVersion;
++import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
++import com.velocitypowered.proxy.protocol.MinecraftPacket;
++import com.velocitypowered.proxy.protocol.ProtocolUtils;
++import com.velocitypowered.proxy.protocol.ProtocolUtils.Direction;
++import io.netty.buffer.ByteBuf;
++import lombok.AllArgsConstructor;
++import lombok.Getter;
++import lombok.NoArgsConstructor;
++import lombok.Setter;
++import lombok.ToString;
++
++@Getter
++@Setter
++@AllArgsConstructor
++@NoArgsConstructor
++@ToString
++public class PlayerPositionAndLook implements MinecraftPacket {
++
++  private double x;
++  private double y;
++  private double z;
++  private float yaw;
++  private float pitch;
++  private int teleportId;
++  private boolean onGround;
++
++
++  @Override
++  public void encode(ByteBuf buf, Direction direction, ProtocolVersion protocolVersion) {
++    buf.writeDouble(this.x);
++    buf.writeDouble(this.y);
++    buf.writeDouble(this.z);
++    buf.writeFloat(this.yaw);
++    buf.writeFloat(this.pitch);
++    if (protocolVersion.isAfterOrEq(ProtocolVersion.MINECRAFT_1_8)) {
++      buf.writeByte(0x00);
++    }
++    if (protocolVersion.isAfterOrEq(ProtocolVersion.MINECRAFT_1_9)) {
++      ProtocolUtils.writeVarInt(buf, teleportId);
++    }
++    if (protocolVersion.isBefore(ProtocolVersion.MINECRAFT_1_8)) {
++      buf.writeBoolean(onGround);
++    }
++  }
++
++  @Override
++  public void decode(ByteBuf buf, Direction direction, ProtocolVersion protocolVersion) {
++    this.x = buf.readDouble();
++    this.y = buf.readDouble();
++    if (protocolVersion.isBefore(ProtocolVersion.MINECRAFT_1_8)) {
++      buf.readDouble(); //Skip HeadY
++    }
++    this.z = buf.readDouble();
++    this.yaw = buf.readFloat();
++    this.pitch = buf.readFloat();
++    this.onGround = buf.readBoolean();
++  }
++
++  @Override
++  public boolean handle(MinecraftSessionHandler handler) {
++    return handler.handle(this);
++  }
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/EmptyChunk.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/EmptyChunk.java
+new file mode 100644
+index 00000000..b14d2501
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/EmptyChunk.java
+@@ -0,0 +1,62 @@
++/*
++ * Velocity-BotFilter
++ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package ru.leymooo.botfilter.protocol.packet.world;
++
++import com.velocitypowered.api.network.ProtocolVersion;
++import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
++import com.velocitypowered.proxy.protocol.MinecraftPacket;
++import com.velocitypowered.proxy.protocol.ProtocolUtils.Direction;
++import io.netty.buffer.ByteBuf;
++
++public class EmptyChunk implements MinecraftPacket {
++
++  private int x;
++  private int z;
++
++  public EmptyChunk(int x, int z) {
++    this.x = x;
++    this.z = z;
++  }
++
++  public EmptyChunk() {
++  }
++
++  @Override
++  public void encode(ByteBuf buf, Direction direction, ProtocolVersion protocolVersion) {
++    throw new UnsupportedOperationException("should be override");
++  }
++
++  @Override
++  public void decode(ByteBuf buf, Direction direction, ProtocolVersion protocolVersion) {
++    throw new UnsupportedOperationException("should not be decoded");
++  }
++
++  @Override
++  public boolean handle(MinecraftSessionHandler handler) {
++    throw new UnsupportedOperationException("cant be called");
++  }
++
++  public int getX() {
++    return x;
++  }
++
++  public int getZ() {
++    return z;
++  }
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/EmptyChunk113.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/EmptyChunk113.java
+new file mode 100644
+index 00000000..7bf6ff78
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/EmptyChunk113.java
+@@ -0,0 +1,97 @@
++/*
++ * Velocity-BotFilter
++ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package ru.leymooo.botfilter.protocol.packet.world;
++
++import com.velocitypowered.api.network.ProtocolVersion;
++import com.velocitypowered.proxy.protocol.ProtocolUtils;
++import com.velocitypowered.proxy.protocol.ProtocolUtils.Direction;
++import io.netty.buffer.ByteBuf;
++import io.netty.buffer.ByteBufOutputStream;
++import java.io.IOException;
++
++/**
++ * 1.13 - 1.16.4
++ */
++public class EmptyChunk113 extends EmptyChunk {
++
++
++  public EmptyChunk113(int x, int z) {
++    super(x, z);
++  }
++
++  @Override
++  public void encode(ByteBuf buf, Direction direction, ProtocolVersion version) {
++    buf.writeInt(getX());
++    buf.writeInt(getZ());
++    buf.writeBoolean(true);
++
++    if (version == ProtocolVersion.MINECRAFT_1_16 || version == ProtocolVersion.MINECRAFT_1_16_1) {
++      buf.writeBoolean(true);
++    }
++
++    ProtocolUtils.writeVarInt(buf, 0);
++
++    if (version.isAfterOrEq(ProtocolVersion.MINECRAFT_1_14)) {
++      writeHeighmaps(buf);
++    }
++    //Biomes
++    if (version.isAfterOrEq(ProtocolVersion.MINECRAFT_1_15)) {
++      if (version.isBefore(ProtocolVersion.MINECRAFT_1_16_2)) {
++        for (int i = 0; i < 1024; i++) {
++          buf.writeInt(0);
++        }
++      } else {
++        ProtocolUtils.writeVarInt(buf, 1024);
++        for (int i = 0; i < 1024; i++) {
++          ProtocolUtils.writeVarInt(buf, 1);
++        }
++      }
++    }
++
++    if (version == ProtocolVersion.MINECRAFT_1_13) {
++      ProtocolUtils.writeByteArray(buf, new byte[512]);
++    } else {
++      ProtocolUtils.writeByteArray(buf, new byte[1024]);
++    }
++
++    ProtocolUtils.writeVarInt(buf, 0);
++  }
++
++  //todo use Compound
++  private void writeHeighmaps(ByteBuf buf) {
++    try (ByteBufOutputStream output = new ByteBufOutputStream(buf)) {
++      output.writeByte(10); //CompoundTag
++      output.writeUTF(""); // CompoundName
++      output.writeByte(10); //CompoundTag
++      output.writeUTF("root"); //root compound
++      output.writeByte(12); //long array
++      output.writeUTF("MOTION_BLOCKING");
++      long[] longArrayTag = new long[36];
++      output.writeInt(longArrayTag.length);
++      for (int i = 0, length = longArrayTag.length; i < length; i++) {
++        output.writeLong(longArrayTag[i]);
++      }
++      buf.writeByte(0); //end of compound
++      buf.writeByte(0); //end of compound
++    } catch (IOException ex) {
++      throw new RuntimeException(ex);
++    }
++  }
++
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/EmptyChunk17.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/EmptyChunk17.java
+new file mode 100644
+index 00000000..dfa833e7
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/EmptyChunk17.java
+@@ -0,0 +1,45 @@
++/*
++ * Velocity-BotFilter
++ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package ru.leymooo.botfilter.protocol.packet.world;
++
++import com.velocitypowered.api.network.ProtocolVersion;
++import com.velocitypowered.proxy.protocol.ProtocolUtils.Direction;
++import io.netty.buffer.ByteBuf;
++
++/**
++ * 1.7
++ */
++//TODO: Normal fields instead of byte array
++public class EmptyChunk17 extends EmptyChunk {
++
++
++  //No comments
++  private final byte[] chunkArray = new byte[]{0, 1, 0, 0, 0, 12, 0, 120, -100, 99, 96, 24, -39, 0,
++      0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
++
++  public EmptyChunk17(int x, int z) {
++    super(x, z);
++  }
++
++  @Override
++  public void encode(ByteBuf buf, Direction direction, ProtocolVersion protocolVersion) {
++    buf.writeBytes(chunkArray);
++  }
++
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/EmptyChunk18.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/EmptyChunk18.java
+new file mode 100644
+index 00000000..f555d05a
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/EmptyChunk18.java
+@@ -0,0 +1,54 @@
++/*
++ * Velocity-BotFilter
++ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package ru.leymooo.botfilter.protocol.packet.world;
++
++import com.velocitypowered.api.network.ProtocolVersion;
++import com.velocitypowered.proxy.protocol.ProtocolUtils;
++import com.velocitypowered.proxy.protocol.ProtocolUtils.Direction;
++import io.netty.buffer.ByteBuf;
++
++/**
++ * 1.8 - 1.12.2
++ */
++public class EmptyChunk18 extends EmptyChunk {
++
++
++  public EmptyChunk18(int x, int z) {
++    super(x, z);
++  }
++
++  @Override
++  public void encode(ByteBuf buf, Direction direction, ProtocolVersion protocolVersion) {
++    buf.writeInt(getX());
++    buf.writeInt(getZ());
++    buf.writeBoolean(true);
++
++    if (protocolVersion == ProtocolVersion.MINECRAFT_1_8) {
++      buf.writeShort(1);
++    } else {
++      ProtocolUtils.writeVarInt(buf, 0);
++    }
++    ProtocolUtils.writeByteArray(buf, new byte[256]);
++
++    if (protocolVersion.compareTo(ProtocolVersion.MINECRAFT_1_9_4) >= 0) {
++      ProtocolUtils.writeVarInt(buf, 0);
++    }
++  }
++
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/registry/Biome.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/registry/Biome.java
+new file mode 100644
+index 00000000..6958d2a2
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/registry/Biome.java
+@@ -0,0 +1,231 @@
++/*
++ * Velocity-BotFilter
++ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package ru.leymooo.botfilter.protocol.registry;
++
++import javax.annotation.Nullable;
++import lombok.Data;
++import lombok.NonNull;
++import lombok.RequiredArgsConstructor;
++import net.kyori.adventure.nbt.CompoundBinaryTag;
++import net.kyori.adventure.nbt.CompoundBinaryTag.Builder;
++import ru.leymooo.botfilter.protocol.registry.Biome.Effects.MoodSound;
++
++public class Biome {
++
++  public static final Biome PLAINTS = new Biome("minecraft:plains", 1,
++      new Element("rain", 0.125f, 0.8f, 0.05f, 0.4f, "plains",
++          Effects.builder(7907327, 329011, 12638463, 415920)
++              .moodSound(MoodSound.of(6000, 2.0d, 8, "minecraft:ambient.cave")).build()));
++
++  public static final Biome SWAMP = new Biome("minecraft:swamp", 6,
++      new Element("rain", -0.2F, 0.8f, 0.1F, 0.9F, "swamp",
++          Effects.builder(7907327, 329011, 12638463, 415920).grassColorModifier("swamp")
++              .foliageColor(6975545)
++              .moodSound(MoodSound.of(6000, 2.0d, 8, "minecraft:ambient.cave")).build()));
++
++  public static final Biome SWAMP_HILLS = new Biome("minecraft:swamp_hills", 134,
++      new Element("rain", -0.1F, 0.8f, 0.3F, 0.9F, "swamp",
++          Effects.builder(7907327, 329011, 12638463, 415920).grassColorModifier("swamp")
++              .foliageColor(6975545)
++              .moodSound(MoodSound.of(6000, 2.0d, 8, "minecraft:ambient.cave")).build()));
++  public final String name;
++  public final int id;
++  public final Element element;
++
++
++  public Biome(String name, int id, Element element) {
++    this.name = name;
++    this.id = id;
++    this.element = element;
++  }
++
++  public CompoundBinaryTag encodeBiome() {
++    return CompoundBinaryTag.builder()
++        .putString("name", name)
++        .putInt("id", id)
++        .put("element", element.encode()).build();
++  }
++
++
++  public static class Element {
++
++    public final String precipitation;
++    public final float depth;
++    public final float temperature;
++    public final float scale;
++    public final float downfall;
++    public final String category;
++    public final Effects effects;
++
++    public Element(String precipitation, float depth, float temperature, float scale,
++        float downfall,
++        String category, Effects effects) {
++      this.precipitation = precipitation;
++      this.depth = depth;
++      this.temperature = temperature;
++      this.scale = scale;
++      this.downfall = downfall;
++      this.category = category;
++      this.effects = effects;
++    }
++
++    public CompoundBinaryTag encode() {
++      return CompoundBinaryTag.builder()
++          .putString("precipitation", precipitation)
++          .putFloat("depth", depth)
++          .putFloat("temperature", temperature)
++          .putFloat("scale", scale)
++          .putFloat("downfall", downfall)
++          .putString("category", category)
++          .put("effects", effects.encode()).build();
++    }
++  }
++
++  @Data
++  @RequiredArgsConstructor
++  @lombok.Builder
++  public static class Effects {
++
++    private final int skyColor;
++    private final int waterFogColor;
++    private final int fogColor;
++    private final int waterColor;
++
++    @Nullable private final Integer foliageColor;
++    @Nullable private final String grassColorModifier;
++    @Nullable private final Music music;
++    @Nullable private final String ambientSound;
++    @Nullable private final AdditionsSound additionsSound;
++    @Nullable private final MoodSound moodSound;
++    @Nullable private final Particle particle;
++
++    public CompoundBinaryTag encode() {
++      Builder result = CompoundBinaryTag.builder();
++      result.putInt("sky_color", skyColor)
++          .putInt("water_fog_color", waterColor)
++          .putInt("fog_color", fogColor)
++          .putInt("water_color", waterColor);
++
++      if (foliageColor != null) {
++        result.putInt("foliage_color", foliageColor);
++      }
++      if (grassColorModifier != null) {
++        result.putString("grass_color_modifier", grassColorModifier);
++      }
++      if (music != null) {
++        result.put("music", music.encode());
++      }
++      if (ambientSound != null) {
++        result.putString("ambient_sound", ambientSound);
++      }
++      if (additionsSound != null) {
++        result.put("additions_sound", additionsSound.encode());
++      }
++      if (moodSound != null) {
++        result.put("mood_sound", moodSound.encode());
++      }
++      if (particle != null) {
++        result.put("particle", particle.encode());
++      }
++      return result.build();
++    }
++
++    public static EffectsBuilder builder(int skyColor, int waterFogColor, int fogColor,
++        int waterColor) {
++      return new EffectsBuilder().skyColor(skyColor).waterFogColor(waterFogColor).fogColor(fogColor)
++          .waterColor(waterColor);
++    }
++
++    @Data
++    @RequiredArgsConstructor(staticName = "of")
++    public static class MoodSound {
++
++      private final int tickDelay;
++      private final double offset;
++      private final int blockSearchExtent;
++      @NonNull private final String sound;
++
++      public CompoundBinaryTag encode() {
++        return CompoundBinaryTag.builder()
++            .putInt("tick_delay", tickDelay)
++            .putDouble("offset", offset)
++            .putInt("block_search_extent", blockSearchExtent)
++            .putString("sound", sound).build();
++      }
++    }
++
++    @Data
++    @RequiredArgsConstructor(staticName = "of")
++    public static class Music {
++
++      private final boolean replaceCurrentMusic;
++      @NonNull private final String sound;
++      private final int maxDelay;
++      private final int minDelay;
++
++      public CompoundBinaryTag encode() {
++        return CompoundBinaryTag.builder()
++            .putBoolean("replace_current_music", replaceCurrentMusic)
++            .putString("sound", sound)
++            .putInt("max_delay", maxDelay)
++            .putInt("min_delay", minDelay).build();
++      }
++    }
++
++    @Data
++    @RequiredArgsConstructor(staticName = "of")
++    public static class AdditionsSound {
++
++      @NonNull private final String sound;
++      private final double tickChance;
++
++      public CompoundBinaryTag encode() {
++        return CompoundBinaryTag.builder()
++            .putString("sound", sound)
++            .putDouble("tick_chance", tickChance).build();
++      }
++    }
++
++    @Data
++    @RequiredArgsConstructor(staticName = "of")
++    public static class Particle {
++
++      private final float probability;
++      @NonNull private final ParticleOptions options;
++
++      public CompoundBinaryTag encode() {
++        return CompoundBinaryTag.builder()
++            .putFloat("probability", probability)
++            .put("options", options.encode()).build();
++      }
++
++      @Data
++      @RequiredArgsConstructor
++      public static class ParticleOptions {
++
++        @NonNull private final String type;
++
++        public CompoundBinaryTag encode() {
++          return CompoundBinaryTag.builder()
++              .putString("type", type).build();
++        }
++      }
++    }
++  }
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/registry/Dimension.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/registry/Dimension.java
+new file mode 100644
+index 00000000..a129ff96
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/registry/Dimension.java
+@@ -0,0 +1,91 @@
++/*
++ * Velocity-BotFilter
++ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package ru.leymooo.botfilter.protocol.registry;
++
++import com.velocitypowered.api.network.ProtocolVersion;
++import lombok.AllArgsConstructor;
++import lombok.Data;
++import lombok.NonNull;
++import net.kyori.adventure.nbt.CompoundBinaryTag;
++import net.kyori.adventure.nbt.CompoundBinaryTag.Builder;
++
++
++@AllArgsConstructor
++@Data
++public class Dimension {
++
++  public static final Dimension OVERWORLD = new Dimension("minecraft:overworld", 0, false, true,
++      0.0f, null, false, "minecraft:infiniburn_overworld",
++      false, true, true, "minecraft:overworld", true, 256, 1.0f, false, false);
++
++  @NonNull
++  private final String key;
++  private final int id;
++
++  private final boolean piglinSafe;
++  private final boolean natural;
++  private final float ambientLight;
++  private final Long fixedTime;
++  private final boolean shrunk;
++  @NonNull
++  private final String infiniburn;
++  private final boolean respawnAnchorWorks;
++  private final boolean hasSkylight;
++  private final boolean bedWorks;
++  @NonNull
++  private final String effects;
++  private final boolean hasRaids;
++  private final int logicalHeight;
++  private final float coordinateScale;
++  private final boolean ultrawarm;
++  private final boolean hasCeiling;
++
++
++  public CompoundBinaryTag encodeAttributes(ProtocolVersion protocolVersion) {
++    Builder tag = CompoundBinaryTag.builder()
++        .putString("name", key)
++        .putBoolean("natural", natural)
++        .putBoolean("has_skylight", hasSkylight)
++        .putBoolean("has_ceiling", hasCeiling);
++    if (fixedTime != null) {
++      tag.putLong("fixed_time", fixedTime);
++    }
++
++    tag.putBoolean("shrunk", shrunk)
++        .putFloat("ambient_light", ambientLight)
++        .putBoolean("ultrawarm", ultrawarm)
++        .putBoolean("has_raids", hasRaids)
++        .putBoolean("respawn_anchor_works", respawnAnchorWorks)
++        .putBoolean("bed_works", bedWorks)
++        .putBoolean("piglin_safe", piglinSafe)
++        .putString("infiniburn", infiniburn)
++        .putInt("logical_height", logicalHeight);
++
++    if (protocolVersion.isAfterOrEq(ProtocolVersion.MINECRAFT_1_16_2)) {
++      tag.remove("name")
++          .remove("shrunk")
++          .putString("effects", effects)
++          .putFloat("coordinate_scale", coordinateScale);
++    }
++
++    return tag.build();
++  }
++
++
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/registry/DimensionRegistry.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/registry/DimensionRegistry.java
+new file mode 100644
+index 00000000..66a72191
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/registry/DimensionRegistry.java
+@@ -0,0 +1,133 @@
++/*
++ * Velocity-BotFilter
++ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package ru.leymooo.botfilter.protocol.registry;
++
++import com.google.common.base.Preconditions;
++import com.velocitypowered.api.network.ProtocolVersion;
++import com.velocitypowered.proxy.connection.registry.DimensionInfo;
++import java.util.Collection;
++import java.util.HashMap;
++import java.util.HashSet;
++import java.util.List;
++import java.util.Map;
++import java.util.Map.Entry;
++import java.util.Set;
++import java.util.stream.Collectors;
++import net.kyori.adventure.nbt.BinaryTagTypes;
++import net.kyori.adventure.nbt.CompoundBinaryTag;
++import net.kyori.adventure.nbt.ListBinaryTag;
++
++public class DimensionRegistry {
++
++  private final Map<Dimension, List<Biome>> dimensions = new HashMap<>();
++  private Dimension activeDimension;
++  private DimensionInfo activeDimensionInfo;
++
++  public void addDimension(Dimension dimension, List<Biome> biomes) {
++    Preconditions.checkNotNull(dimension);
++    Preconditions.checkNotNull(biomes);
++    Preconditions.checkState(!biomes.isEmpty());
++    dimensions.put(dimension, biomes);
++  }
++
++  public void removeDimension(Dimension dimension) {
++    dimensions.remove(dimension);
++  }
++
++  public Dimension getDimension(int id) {
++    return dimensions.keySet().stream().filter(dim -> dim.getId() == id).findAny().orElse(null);
++  }
++
++  public Dimension getDimension(String key) {
++    return dimensions.keySet().stream().filter(dim -> key.equals(dim.getKey())).findAny()
++        .orElse(null);
++  }
++
++  public List<Biome> getBiomes(Dimension dimension) {
++    return dimensions.get(dimension);
++  }
++
++  public List<String> getWorldNames() {
++    return dimensions.keySet().stream().map(dim -> dim.getKey()).collect(Collectors.toList());
++  }
++
++  public Dimension getActiveDimension() {
++    return activeDimension;
++  }
++
++  public void setActiveDimension(Dimension activeDimension) {
++    Preconditions
++        .checkState(dimensions.containsKey(activeDimension), "Dimension does not registered");
++    this.activeDimension = activeDimension;
++  }
++
++  public DimensionInfo getActiveDimensionInfo() {
++    return activeDimensionInfo;
++  }
++
++  public void setActiveDimensionInfo(DimensionInfo activeDimensionInfo) {
++    Preconditions.checkState(activeDimension != null, "Active dimension does not set");
++    this.activeDimensionInfo = activeDimensionInfo;
++  }
++
++  public CompoundBinaryTag encode(ProtocolVersion protocolVersion) {
++    ListBinaryTag.Builder<CompoundBinaryTag> dimensionsBuilder = ListBinaryTag
++        .builder(BinaryTagTypes.COMPOUND);
++    for (Entry<Dimension, List<Biome>> dimensionEntry : dimensions.entrySet()) {
++      Dimension dimension = dimensionEntry.getKey();
++      CompoundBinaryTag attributes = dimension.encodeAttributes(protocolVersion);
++      if (protocolVersion.isBeforeOrEq(ProtocolVersion.MINECRAFT_1_16_1)) {
++        dimensionsBuilder.add(attributes);
++      } else {
++        CompoundBinaryTag dimensionData = CompoundBinaryTag.builder()
++            .putString("name", dimension.getKey())
++            .putInt("id", dimension.getId())
++            .put("element", attributes).build();
++        dimensionsBuilder.add(dimensionData);
++      }
++    }
++    if (protocolVersion.isBeforeOrEq(ProtocolVersion.MINECRAFT_1_16_1)) {
++      return CompoundBinaryTag.builder().put("dimension", dimensionsBuilder.build()).build();
++    } else {
++      CompoundBinaryTag encodedDimensions = CompoundBinaryTag.builder()
++          .putString("type", "minecraft:dimension_type")
++          .put("value", dimensionsBuilder.build())
++          .build();
++      return CompoundBinaryTag.builder()
++          .put("minecraft:dimension_type", encodedDimensions)
++          .put("minecraft:worldgen/biome", createBiomeRegistry(dimensions.values())).build();
++    }
++  }
++
++  private CompoundBinaryTag createBiomeRegistry(Collection<List<Biome>> allBiomes) {
++    Set<Biome> biomes = new HashSet<>();
++    for (List<Biome> biomeLise : allBiomes) {
++      biomes.addAll(biomeLise);
++    }
++
++    ListBinaryTag.Builder<CompoundBinaryTag> biomesBuilder = ListBinaryTag
++        .builder(BinaryTagTypes.COMPOUND);
++    for (Biome biome : biomes) {
++      biomesBuilder.add(biome.encodeBiome());
++    }
++    return CompoundBinaryTag.builder()
++        .putString("type", "minecraft:worldgen/biome")
++        .put("value", biomesBuilder.build()).build();
++  }
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/ByteBufCreator.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/ByteBufCreator.java
+new file mode 100644
+index 00000000..433bb073
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/ByteBufCreator.java
+@@ -0,0 +1,52 @@
++/*
++ * Velocity-BotFilter
++ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package ru.leymooo.botfilter.protocol.util;
++
++import com.velocitypowered.natives.compression.VelocityCompressor;
++import com.velocitypowered.natives.util.BufferPreference;
++import com.velocitypowered.natives.util.Natives;
++import io.netty.buffer.ByteBuf;
++import io.netty.buffer.Unpooled;
++
++public class ByteBufCreator {
++
++  private static boolean directBuffers = false;
++
++  static {
++    VelocityCompressor compressor = Natives.compress.get().create(1);
++    if (compressor.preferredBufferType() == BufferPreference.DIRECT_PREFERRED
++        || compressor.preferredBufferType() == BufferPreference.DIRECT_REQUIRED) {
++      directBuffers = true;
++    }
++    compressor.close();
++  }
++
++
++  public static ByteBuf newBuffer() {
++    return directBuffers ? Unpooled.directBuffer() : Unpooled.buffer();
++  }
++
++  public static ByteBuf newBuffer(int length) {
++    return directBuffers ? Unpooled.directBuffer(length) : Unpooled.buffer(length);
++  }
++
++  public static boolean isDirectBufferPreferred() {
++    return directBuffers;
++  }
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/MultiplePreparedPackets.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/MultiplePreparedPackets.java
+new file mode 100644
+index 00000000..58303ce3
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/MultiplePreparedPackets.java
+@@ -0,0 +1,103 @@
++/*
++ * Velocity-BotFilter
++ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package ru.leymooo.botfilter.protocol.util;
++
++import com.google.common.base.Preconditions;
++import com.velocitypowered.api.network.ProtocolVersion;
++import com.velocitypowered.proxy.connection.MinecraftConnection;
++import io.netty.buffer.ByteBuf;
++import io.netty.channel.Channel;
++import java.util.EnumMap;
++import java.util.EnumSet;
++import java.util.Map;
++import ru.leymooo.botfilter.protocol.util.ByteBufCreator;
++import ru.leymooo.botfilter.protocol.util.PreparedPacket;
++import ru.leymooo.botfilter.protocol.util.PreparedPacket.OnlineModeSupport;
++
++public class MultiplePreparedPackets {
++
++  private OnlineModeSupport onlineModeSupport;
++  private Map<ProtocolVersion, ByteBuf> multiplePayloadBuf = new EnumMap<ProtocolVersion, ByteBuf>(
++      ProtocolVersion.class);
++  private PreparedPacket[] onlineModePackets;
++
++  public MultiplePreparedPackets(OnlineModeSupport onlineMode, PreparedPacket... preparedPackets) {
++    for (PreparedPacket packet : preparedPackets) {
++      Preconditions.checkState(packet.isAdapted(), "PreparedPacket is not adapted");
++    }
++    this.onlineModeSupport = onlineMode;
++    if (onlineMode.isOnlineModeSupported()) {
++      onlineModePackets = new PreparedPacket[preparedPackets.length];
++    }
++    createPayload(preparedPackets);
++  }
++
++  private void createPayload(PreparedPacket... preparedPackets) {
++    if (onlineModeSupport.isOnlineModeSupported()) {
++      this.onlineModePackets = preparedPackets;
++    }
++
++    if (onlineModeSupport.isOfflineModeSupported()) {
++      for (ProtocolVersion protocolVersion : EnumSet
++          .range(ProtocolVersion.MINIMUM_VERSION, ProtocolVersion.MAXIMUM_VERSION)) {
++        ByteBuf multiple = ByteBufCreator.newBuffer();
++        for (PreparedPacket preparedPacket : preparedPackets) {
++          ByteBuf buf = preparedPacket.getBuffer(false, protocolVersion);
++          if (buf == null) {
++            continue;
++          }
++          multiple.writeBytes(buf);
++          buf.release();
++        }
++
++        if (multiple.readableBytes() == 0) {
++          multiple.release();
++          continue;
++        }
++        //Deduplicate
++        for (ByteBuf byteBuf : multiplePayloadBuf.values()) {
++          if (byteBuf.equals(multiple)) {
++            multiple.release();
++            multiple = byteBuf;
++            break;
++          }
++        }
++        multiplePayloadBuf.put(protocolVersion, multiple);
++      }
++    }
++  }
++
++  public void write(MinecraftConnection connection, boolean onlineMode) {
++    if (onlineMode) {
++      for (PreparedPacket preparedPacket : onlineModePackets) {
++        connection.delayedWrite(preparedPacket);
++      }
++    } else {
++      connection.delayedWrite(this);
++    }
++  }
++
++  public ByteBuf getBuffer(ProtocolVersion protocolVersion) {
++    return multiplePayloadBuf.get(protocolVersion).retainedSlice();
++  }
++
++  public int getBuffetLength(ProtocolVersion protocolVersion) {
++    return multiplePayloadBuf.get(protocolVersion).readableBytes();
++  }
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/PacketCompressor.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/PacketCompressor.java
+new file mode 100644
+index 00000000..ae281c03
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/PacketCompressor.java
+@@ -0,0 +1,68 @@
++/*
++ * Velocity-BotFilter
++ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package ru.leymooo.botfilter.protocol.util;
++
++import com.velocitypowered.natives.compression.VelocityCompressor;
++import com.velocitypowered.natives.util.Natives;
++import com.velocitypowered.proxy.config.VelocityConfiguration;
++import com.velocitypowered.proxy.protocol.ProtocolUtils;
++import io.netty.buffer.ByteBuf;
++import io.netty.buffer.Unpooled;
++
++public class PacketCompressor {
++
++  private final ThreadLocal<VelocityCompressor> compressors = ThreadLocal
++      .withInitial(() -> Natives.compress.get().create(12));
++  private final VelocityConfiguration velocityConfiguration;
++
++  /**
++   * Constructs VelocityPacketCompressor.
++   *
++   * @param velocityConfiguration configuration
++   */
++  public PacketCompressor(VelocityConfiguration velocityConfiguration) {
++    this.velocityConfiguration = velocityConfiguration;
++
++  }
++
++  public boolean isCompressionEnabled() {
++    return velocityConfiguration.getCompressionThreshold() >= 0;
++  }
++
++  public boolean shouldCompress(int i) {
++    return isCompressionEnabled() && i >= velocityConfiguration.getCompressionThreshold();
++  }
++
++  public ByteBuf compress(ByteBuf source) {
++    VelocityCompressor compressor = compressors.get();
++    ByteBuf destination =
++        ByteBufCreator.isDirectBufferPreferred() ? Unpooled.directBuffer() : Unpooled.buffer();
++    int uncompressed = source.readableBytes();
++    ProtocolUtils.writeVarInt(destination, uncompressed);
++    try {
++      compressor.deflate(source, destination);
++    } catch (Exception e) {
++      throw new RuntimeException(e);
++    } finally {
++      source.release();
++    }
++    return destination;
++  }
++
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/PreparedPacket.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/PreparedPacket.java
+new file mode 100644
+index 00000000..0f4586b8
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/PreparedPacket.java
+@@ -0,0 +1,228 @@
++/*
++ * Velocity-BotFilter
++ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package ru.leymooo.botfilter.protocol.util;
++
++import com.velocitypowered.api.network.ProtocolVersion;
++import com.velocitypowered.proxy.protocol.MinecraftPacket;
++import com.velocitypowered.proxy.protocol.ProtocolUtils;
++import com.velocitypowered.proxy.protocol.ProtocolUtils.Direction;
++import com.velocitypowered.proxy.protocol.StateRegistry;
++import io.netty.buffer.ByteBuf;
++import io.netty.util.ReferenceCountUtil;
++import java.util.EnumMap;
++import java.util.EnumSet;
++import java.util.Map;
++import java.util.Map.Entry;
++
++
++public class PreparedPacket<T extends MinecraftPacket> {
++
++  private Map<ProtocolVersion, ByteBufHolder> offlineMode = new EnumMap<>(ProtocolVersion.class);
++  private Map<ProtocolVersion, ByteBufHolder> onlineMode;
++  private OnlineModeSupport onlineModeSupport;
++
++  public void prepareSinge(T packet, ProtocolVersion version) {
++    prepare(packet, version, version);
++  }
++
++  public void prepareSinge(T packet, ProtocolVersion version, StateRegistry protocol) {
++    prepare(packet, version, version, protocol);
++  }
++
++  public void prepare(T packet) {
++    prepare(packet, ProtocolVersion.MINIMUM_VERSION, ProtocolVersion.MAXIMUM_VERSION);
++  }
++
++  public void prepare(T packet, ProtocolVersion from) {
++    prepare(packet, from, ProtocolVersion.MAXIMUM_VERSION);
++  }
++
++  public void prepare(T packet, ProtocolVersion from, ProtocolVersion to) {
++    prepare(packet, from, to, StateRegistry.BotFilter);
++  }
++
++  public void prepare(T packet, ProtocolVersion from, ProtocolVersion to, StateRegistry protocol) {
++    for (ProtocolVersion protocolVersion : EnumSet.range(from, to)) {
++      ByteBuf buf = encodePacket(packet, protocolVersion, protocol);
++      ByteBufHolder holder = getHolder(buf, protocolVersion);
++      holder.versions.add(protocolVersion);
++      offlineMode.put(protocolVersion, holder);
++    }
++  }
++
++  /*
++  public void preparePacketAndCopy(T packet, ProtocolVersion start, ProtocolVersion end,
++      StateRegistry protocol) {
++    ByteBuf buf = encodePacket(packet, start, protocol);
++    ByteBufHolder holder = new ByteBufHolder(start.isBefore(ProtocolVersion.MINECRAFT_1_8), buf);
++    for (ProtocolVersion protocolVersion : EnumSet.range(start, end)) {
++      prepared.put(protocolVersion, holder);
++    }
++  }
++
++   */
++
++  private ByteBuf encodePacket(T packet, ProtocolVersion version, StateRegistry protocol) {
++    int id = getPacketId(packet, version, protocol);
++    ByteBuf byteBuf = ByteBufCreator.newBuffer();
++    ProtocolUtils.writeVarInt(byteBuf, id);
++    packet.encode(byteBuf, Direction.CLIENTBOUND, version);
++    return byteBuf;
++  }
++
++  private int getPacketId(T packet, ProtocolVersion version, StateRegistry protocol) {
++    try {
++      return protocol.clientbound.getProtocolRegistry(version).getPacketId(packet.getClass());
++    } catch (Exception e) {
++      return protocol.clientbound.getProtocolRegistry(version).getPacketId(
++          (Class<? extends MinecraftPacket>) packet.getClass().getSuperclass());
++    }
++  }
++
++  public ByteBuf getBuffer(boolean onlineMode, ProtocolVersion version) {
++    ByteBufHolder holder = onlineMode ? this.onlineMode.get(version) : offlineMode.get(version);
++    return holder == null ? null : holder.byteBuf.retainedSlice();
++  }
++
++
++  public int getBufferLength(boolean onlineMode, ProtocolVersion version) {
++    ByteBufHolder holder = onlineMode ? this.onlineMode.get(version) : offlineMode.get(version);
++    return holder == null ? 0 : holder.byteBuf.readableBytes();
++  }
++
++  public boolean isAdapted() {
++    return onlineModeSupport != null;
++  }
++
++  public void adapt(OnlineModeSupport onlineModeSupport) {
++    this.onlineModeSupport = onlineModeSupport;
++    if (onlineModeSupport == OnlineModeSupport.ONLINE_MODE_ONLY) {
++      this.onlineMode = this.offlineMode;
++      this.offlineMode = null;
++      return;
++    }
++
++    if (onlineModeSupport == OnlineModeSupport.BOTH) {
++      onlineMode = new EnumMap<>(ProtocolVersion.class);
++      for (ByteBufHolder value : offlineMode.values()) {
++        ByteBufHolder byteBufHolder = new ByteBufHolder(value.mc1_7, value.byteBuf.copy());
++        byteBufHolder.compressed = value.compressed;
++        byteBufHolder.versions = value.versions;
++        for (ProtocolVersion version : value.versions) {
++          onlineMode.put(version, byteBufHolder);
++        }
++      }
++    }
++    writeVarintLength();
++  }
++
++  private ByteBufHolder getHolder(ByteBuf buf, ProtocolVersion version) {
++    if (version.isBefore(ProtocolVersion.MINECRAFT_1_8)) {
++      ByteBufHolder holder = offlineMode.get(ProtocolVersion.MINECRAFT_1_7_2);
++      if (holder != null && holder.byteBuf.equals(buf)) {
++        buf.release();
++        return holder;
++      }
++      return new ByteBufHolder(true, buf);
++    }
++
++    for (ByteBufHolder holder : offlineMode.values()) {
++      if (!holder.mc1_7 && holder.byteBuf.equals(buf)) {
++        buf.release();
++        return holder;
++      }
++    }
++    return new ByteBufHolder(false, buf);
++  }
++
++
++  public void processCompress(PacketCompressor packetCompressor) {
++    if (onlineModeSupport != null) {
++      throw new IllegalStateException("Packet compression does not allowed after adapt");
++    }
++    for (Entry<ProtocolVersion, ByteBufHolder> prepared : offlineMode.entrySet()) {
++      ByteBufHolder holder = prepared.getValue();
++      if (holder.mc1_7 || holder.compressed) {
++        continue;
++      }
++      ByteBuf current = holder.byteBuf;
++      ByteBuf newBuf;
++      int bytes = current.readableBytes();
++      holder.compressed = true;
++      if (packetCompressor.shouldCompress(bytes)) {
++        newBuf = packetCompressor.compress(current);
++      } else {
++        newBuf = ByteBufCreator.newBuffer(2 + current.readableBytes());
++        ProtocolUtils.writeVarInt(newBuf, 0);
++        newBuf.writeBytes(current);
++      }
++      newBuf.capacity(newBuf.readableBytes());
++      holder.byteBuf = newBuf;
++    }
++  }
++
++  private void writeVarintLength() {
++    for (Entry<ProtocolVersion, ByteBufHolder> prepared : offlineMode.entrySet()) {
++      ByteBufHolder holder = prepared.getValue();
++      if (holder.varint) {
++        continue;
++      }
++      ByteBuf current = holder.byteBuf;
++      ByteBuf buf = ByteBufCreator.newBuffer(5 + current.readableBytes());
++      ProtocolUtils.writeVarInt(buf, current.readableBytes());
++      buf.writeBytes(current);
++      buf.capacity(buf.readableBytes());
++      ReferenceCountUtil.safeRelease(current);
++      holder.byteBuf = buf;
++      holder.varint = true;
++    }
++  }
++
++
++  public enum OnlineModeSupport {
++    OFFLINE_MODE_ONLY,
++    ONLINE_MODE_ONLY,
++    BOTH;
++
++    public boolean isOnlineModeSupported() {
++      return this != OFFLINE_MODE_ONLY;
++    }
++
++    public boolean isOfflineModeSupported() {
++      return this != ONLINE_MODE_ONLY;
++    }
++  }
++
++  private static class ByteBufHolder {
++
++    private final boolean mc1_7;
++    private ByteBuf byteBuf;
++    private EnumSet<ProtocolVersion> versions = EnumSet.noneOf(ProtocolVersion.class);
++    private boolean compressed = false;
++    private boolean varint = false;
++
++    public ByteBufHolder(boolean mc1_7, ByteBuf byteBuf) {
++      this.mc1_7 = mc1_7;
++      this.byteBuf = byteBuf;
++      if (mc1_7) {
++        compressed = true;
++      }
++    }
++  }
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/server/BotFilterSessionHandler.java b/proxy/src/main/java/ru/leymooo/botfilter/server/BotFilterSessionHandler.java
+new file mode 100644
+index 00000000..9705ae00
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/server/BotFilterSessionHandler.java
+@@ -0,0 +1,61 @@
++/*
++ * Velocity-BotFilter
++ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package ru.leymooo.botfilter.server;
++
++
++import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
++import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
++import java.util.Objects;
++import lombok.Data;
++
++@Data
++public class BotFilterSessionHandler implements MinecraftSessionHandler {
++
++
++  private final ConnectedPlayer player;
++  private final VirtualServer virtualServer;
++
++  @Override
++  public void disconnected() {
++    virtualServer.disconnected(this);
++  }
++
++  private void finishCheck() {
++    //fakeServer.getBotFilter().restoreOriginalHandlers(user);
++    //afterCheck.run();
++  }
++
++
++  @Override
++  public boolean equals(Object o) {
++    if (this == o) {
++      return true;
++    }
++    if (o == null || getClass() != o.getClass()) {
++      return false;
++    }
++    BotFilterSessionHandler that = (BotFilterSessionHandler) o;
++    return player.getUsername().equals(that.player.getUsername());
++  }
++
++  @Override
++  public int hashCode() {
++    return Objects.hash(player.getUsername());
++  }
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/server/VirtualServer.java b/proxy/src/main/java/ru/leymooo/botfilter/server/VirtualServer.java
+new file mode 100644
+index 00000000..355c23b5
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/server/VirtualServer.java
+@@ -0,0 +1,134 @@
++/*
++ * Velocity-BotFilter
++ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package ru.leymooo.botfilter.server;
++
++import com.google.common.collect.ImmutableList;
++import com.velocitypowered.api.network.ProtocolVersion;
++import com.velocitypowered.proxy.connection.registry.DimensionInfo;
++import com.velocitypowered.proxy.protocol.StateRegistry;
++import com.velocitypowered.proxy.protocol.packet.Disconnect;
++import java.util.concurrent.ConcurrentHashMap;
++import java.util.concurrent.ConcurrentMap;
++import net.kyori.adventure.text.Component;
++import net.kyori.adventure.text.format.NamedTextColor;
++import ru.leymooo.botfilter.BotFilter;
++import ru.leymooo.botfilter.protocol.BotFilterProtocol;
++import ru.leymooo.botfilter.protocol.netty.PreparedPacketEncoder;
++import ru.leymooo.botfilter.protocol.packet.JoinGame;
++import ru.leymooo.botfilter.protocol.packet.PlayerPositionAndLook;
++import ru.leymooo.botfilter.protocol.packet.world.EmptyChunk;
++import ru.leymooo.botfilter.protocol.packet.world.EmptyChunk113;
++import ru.leymooo.botfilter.protocol.packet.world.EmptyChunk17;
++import ru.leymooo.botfilter.protocol.packet.world.EmptyChunk18;
++import ru.leymooo.botfilter.protocol.registry.Biome;
++import ru.leymooo.botfilter.protocol.registry.Dimension;
++import ru.leymooo.botfilter.protocol.registry.DimensionRegistry;
++import ru.leymooo.botfilter.protocol.util.MultiplePreparedPackets;
++import ru.leymooo.botfilter.protocol.util.PacketCompressor;
++import ru.leymooo.botfilter.protocol.util.PreparedPacket;
++
++public class VirtualServer {
++
++  private final BotFilter botFilter;
++  private final ConcurrentMap<String, BotFilterSessionHandler> activeConnections = new ConcurrentHashMap<>();
++  private MultiplePreparedPackets spawnPackets;
++  private PreparedPacket<Disconnect> alreadyConnected;
++
++
++  public VirtualServer(BotFilter botFilter) {
++    this.botFilter = botFilter;
++    initPackets();
++  }
++
++  private void initPackets() {
++    BotFilterProtocol.init();
++    PreparedPacketEncoder.init(botFilter.getBotFilterConfiguration().getOnlineModeSupport());
++    PacketCompressor compressor = new PacketCompressor(
++        botFilter.getVelocityServer().getConfiguration());
++
++    DimensionRegistry dimensionRegistry = new DimensionRegistry();
++    dimensionRegistry.addDimension(
++        Dimension.OVERWORLD, ImmutableList.of(Biome.PLAINTS, Biome.SWAMP, Biome.SWAMP_HILLS));
++    dimensionRegistry.setActiveDimension(Dimension.OVERWORLD);
++    dimensionRegistry.setActiveDimensionInfo(
++        new DimensionInfo("minecraft:overworld", "minecraft:overworld", false, false));
++    PreparedPacket<JoinGame> joinGame = new PreparedPacket<>();
++    joinGame.prepare(JoinGame.builder().entityId(0).gamemode((short) 1).dimension(0).
++        partialHashedSeed(1).difficulty((short) 0).maxPlayers(1).levelType("flat").viewDistance(4)
++        .reducedDebugInfo(false).showRespawnScreen(true).hardcore(false)
++        .dimensionRegistry(dimensionRegistry).build());
++    PreparedPacket<PlayerPositionAndLook> playerPosAndLook = new PreparedPacket<>();
++    playerPosAndLook.prepare(new PlayerPositionAndLook(0, 60, 0, 0f, 0f, -133, false));
++
++    PreparedPacket<EmptyChunk> chunkPacket = new PreparedPacket<>();
++    chunkPacket.prepare(new EmptyChunk17(0, 0), ProtocolVersion.MINECRAFT_1_7_2,
++        ProtocolVersion.MINECRAFT_1_7_6);
++    chunkPacket.prepare(new EmptyChunk18(0, 0), ProtocolVersion.MINECRAFT_1_8,
++        ProtocolVersion.MINECRAFT_1_12_2);
++    chunkPacket.prepare(new EmptyChunk113(0, 0), ProtocolVersion.MINECRAFT_1_13,
++        ProtocolVersion.MAXIMUM_VERSION);
++
++    alreadyConnected = new PreparedPacket<>();
++    Component component = Component.text("Already connected").color(NamedTextColor.RED)
++        .asComponent();
++    alreadyConnected.prepare(Disconnect.create(component, ProtocolVersion.MINECRAFT_1_7_2),
++        ProtocolVersion.MINECRAFT_1_7_2, ProtocolVersion.MINECRAFT_1_15_2, StateRegistry.PLAY);
++    alreadyConnected.prepare(Disconnect.create(component, ProtocolVersion.MINECRAFT_1_7_2),
++        ProtocolVersion.MINECRAFT_1_16, ProtocolVersion.MAXIMUM_VERSION, StateRegistry.PLAY);
++
++    processCompressionAndAdapt(compressor, joinGame, playerPosAndLook, chunkPacket,
++        alreadyConnected);
++    spawnPackets = new MultiplePreparedPackets(
++        botFilter.getBotFilterConfiguration().getOnlineModeSupport(), joinGame, playerPosAndLook,
++        chunkPacket);
++  }
++
++  private void processCompressionAndAdapt(PreparedPacket packet, PacketCompressor compressor) {
++    if (compressor.isCompressionEnabled()) {
++      packet.processCompress(compressor);
++    }
++    packet.adapt(botFilter.getBotFilterConfiguration().getOnlineModeSupport());
++  }
++
++  private void processCompressionAndAdapt(PacketCompressor compressor, PreparedPacket... packets) {
++    for (PreparedPacket packet : packets) {
++      processCompressionAndAdapt(packet, compressor);
++    }
++  }
++
++  public void spawnPlayer(BotFilterSessionHandler user) {
++
++    String username = user.getPlayer().getUsername().toLowerCase();
++    if (activeConnections.putIfAbsent(username, user) != null) {
++      user.getPlayer().getConnection().closeWith(alreadyConnected);
++      //user.closeWith(preparedPackets.getAlreadyConnected());
++      return;
++    }
++    spawnPackets.write(user.getPlayer().getConnection(), user.getPlayer().isOnlineMode());
++    user.getPlayer().getConnection().flush();
++  }
++
++  public void disconnected(BotFilterSessionHandler botFilterConnection) {
++    activeConnections.remove(botFilterConnection.getPlayer().getUsername().toLowerCase());
++  }
++
++  public BotFilter getBotFilter() {
++    return botFilter;
++  }
++}
+-- 
+2.29.2.windows.3
+

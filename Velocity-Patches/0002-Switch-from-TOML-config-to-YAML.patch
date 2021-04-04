@@ -1,11 +1,11 @@
-From fb223e7a539710106da7eaef80600a91ced5a438 Mon Sep 17 00:00:00 2001
+From cd90812ced551fe5e1c39da9f75a4b638a1e456c Mon Sep 17 00:00:00 2001
 From: Leymooo <vjatseslav.maspanov@gmail.com>
 Date: Sat, 3 Apr 2021 15:28:49 +0300
 Subject: [PATCH] Switch from TOML config to YAML
 
 
 diff --git a/build.gradle b/build.gradle
-index 9c0cdac3..2503a061 100644
+index 9c0cdac3..4c30f6a5 100644
 --- a/build.gradle
 +++ b/build.gradle
 @@ -9,7 +9,7 @@ buildscript {
@@ -17,16 +17,6 @@ index 9c0cdac3..2503a061 100644
      id 'org.cadixdev.licenser' version '0.5.1' apply false
  }
  
-@@ -73,6 +73,9 @@ allprojects {
-     }
- 
-     tasks.withType(com.github.spotbugs.snom.SpotBugsTask) {
-+        effort = 'max'
-+        reportLevel = 'high'
-+
-         reports {
-             html {
-                 enabled = true
 diff --git a/proxy/build.gradle b/proxy/build.gradle
 index ebc6a162..e4e91469 100644
 --- a/proxy/build.gradle
@@ -202,7 +192,7 @@ index 00000000..3e5a3a67
 +
 +}
 diff --git a/proxy/src/main/java/com/velocitypowered/proxy/config/VelocityConfiguration.java b/proxy/src/main/java/com/velocitypowered/proxy/config/VelocityConfiguration.java
-index f020b221..e937c43b 100644
+index 4977f66f..4bd717e3 100644
 --- a/proxy/src/main/java/com/velocitypowered/proxy/config/VelocityConfiguration.java
 +++ b/proxy/src/main/java/com/velocitypowered/proxy/config/VelocityConfiguration.java
 @@ -18,8 +18,6 @@
@@ -513,8 +503,8 @@ index f020b221..e937c43b 100644
 -        motd,
 -        maxPlayers,
 -        onlineMode,
--        announceForge,
 -        preventClientProxyConnections,
+-        announceForge,
 -        forwardingMode,
 -        forwardingSecret,
 -        kickExisting,
@@ -607,47 +597,26 @@ index f020b221..e937c43b 100644
 -      return name.replace("\"", "");
 -    }
 -
-     @Override
+-    @Override
 -    public String toString() {
 -      return "Servers{"
 -          + "servers=" + servers
 -          + ", attemptConnectionOrder=" + attemptConnectionOrder
 -          + '}';
-+    public void loaded() {
-+      servers = ImmutableMap.copyOf(servers);
-+      attemptConnectionOrder = ImmutableList.copyOf(attemptConnectionOrder);
-     }
-   }
- 
+-    }
+-  }
+-
 -  private static class ForcedHosts {
-+  @Getter
-+  @Setter
-+  @ToString
-+  @NoArgsConstructor(access = AccessLevel.PRIVATE)
-+  private static class Advanced implements ConfigurationSection {
-+    @Expose @Key("compression-threshold")
-+    @Comment({"How large a Minecraft packet has to be before we compress it. Setting this to zero",
-+        "will compress all packets, and setting it to -1 will disable compression entirely."})
-+    private int compressionThreshold = 256;
- 
+-
 -    private Map<String, List<String>> forcedHosts = ImmutableMap.of(
 -        "lobby.example.com", ImmutableList.of("lobby"),
 -        "factions.example.com", ImmutableList.of("factions"),
 -        "minigames.example.com", ImmutableList.of("minigames")
 -    );
-+    @Expose @Key("compression-level")
-+    @Comment({"How much compression should be done (from 0-9). The default is -1, which uses the",
-+        "default level of 6."})
-+    private int compressionLevel = -1;
- 
+-
 -    private ForcedHosts() {
 -    }
-+    @Expose @Key("login-ratelimit")
-+    @Comment({"How fast (in milliseconds) are clients allowed to connect"
-+        + " after the last connection?",
-+        "By default, this is three seconds. Disable this by setting this to 0."})
-+    private int loginRatelimit = 3000;
- 
+-
 -    private ForcedHosts(CommentedConfig config) {
 -      if (config != null) {
 -        Map<String, List<String>> forcedHosts = new HashMap<>();
@@ -664,47 +633,40 @@ index f020b221..e937c43b 100644
 -        this.forcedHosts = ImmutableMap.copyOf(forcedHosts);
 -      }
 -    }
-+    @Expose @Key("connection-timeout")
-+    @Comment("Specify a custom timeout for connection timeouts here. The default is five seconds.")
-+    private int connectionTimeout = 5000;
- 
+-
 -    private ForcedHosts(Map<String, List<String>> forcedHosts) {
 -      this.forcedHosts = forcedHosts;
 -    }
-+    @Expose @Key("read-timeout")
-+    @Comment("Specify a read timeout for connections here. The default is 30 seconds.")
-+    private int readTimeout = 30000;
- 
+-
 -    private Map<String, List<String>> getForcedHosts() {
 -      return forcedHosts;
 -    }
-+    @Expose @Key("haproxy-protocol")
-+    @Comment({"Enables compatibility with HAProxy's PROXY protocol. ",
-+        "If you don't know what this is for, then don't enable it."})
-+    private boolean proxyProtocol = false;
- 
+-
 -    private void setForcedHosts(Map<String, List<String>> forcedHosts) {
 -      this.forcedHosts = forcedHosts;
 -    }
-+    @Expose @Key("tcp-fast-open")
-+    @Comment("Enables TCP fast open support on the proxy. Requires the proxy to run on Linux.")
-+    private boolean tcpFastOpen = false;
- 
--    @Override
+-
+     @Override
 -    public String toString() {
 -      return "ForcedHosts{"
 -          + "forcedHosts=" + forcedHosts
 -          + '}';
--    }
--  }
-+    @Expose @Key("bungee-plugin-message-channel")
-+    @Comment("Enables BungeeCord plugin messaging channel support on Velocity.")
-+    private boolean bungeePluginMessageChannel = true;
++    public void loaded() {
++      servers = ImmutableMap.copyOf(servers);
++      attemptConnectionOrder = ImmutableList.copyOf(attemptConnectionOrder);
+     }
+   }
  
 -  private static class Advanced {
-+    @Expose @Key("show-ping-requests")
-+    @Comment("# Shows ping requests to the proxy from clients.")
-+    private boolean showPingRequests = false;
++  @Getter
++  @Setter
++  @ToString
++  @NoArgsConstructor(access = AccessLevel.PRIVATE)
++  private static class Advanced implements ConfigurationSection {
++    @Expose @Key("compression-threshold")
++    @Comment({"How large a Minecraft packet has to be before we compress it. Setting this to zero",
++        "will compress all packets, and setting it to -1 will disable compression entirely."})
++    private int compressionThreshold = 256;
  
 -    @Expose private int compressionThreshold = 256;
 -    @Expose private int compressionLevel = -1;
@@ -718,13 +680,19 @@ index f020b221..e937c43b 100644
 -    @Expose private boolean failoverOnUnexpectedServerDisconnect = true;
 -    @Expose private boolean announceProxyCommands = true;
 -    @Expose private boolean logCommandExecutions = false;
-+    @Expose @Key("failover-on-unexpected-server-disconnect")
-+    @Comment(value = "failoverOnUnexpectedServerDisconnect", enumClass = Comments.class)
-+    private boolean failoverOnUnexpectedServerDisconnect = true;
++    @Expose @Key("compression-level")
++    @Comment({"How much compression should be done (from 0-9). The default is -1, which uses the",
++        "default level of 6."})
++    private int compressionLevel = -1;
  
 -    private Advanced() {
 -    }
--
++    @Expose @Key("login-ratelimit")
++    @Comment({"How fast (in milliseconds) are clients allowed to connect"
++        + " after the last connection?",
++        "By default, this is three seconds. Disable this by setting this to 0."})
++    private int loginRatelimit = 3000;
+ 
 -    private Advanced(CommentedConfig config) {
 -      if (config != null) {
 -        this.compressionThreshold = config.getIntOrElse("compression-threshold", 256);
@@ -746,30 +714,46 @@ index f020b221..e937c43b 100644
 -        this.logCommandExecutions = config.getOrElse("log-command-executions", false);
 -      }
 -    }
-+    @Expose @Key("announce-proxy-commands")
-+    @Comment("Declares the proxy commands to 1.13+ clients.")
-+    private boolean announceProxyCommands = true;
++    @Expose @Key("connection-timeout")
++    @Comment("Specify a custom timeout for connection timeouts here. The default is five seconds.")
++    private int connectionTimeout = 5000;
  
 -    public int getCompressionThreshold() {
 -      return compressionThreshold;
 -    }
--
++    @Expose @Key("read-timeout")
++    @Comment("Specify a read timeout for connections here. The default is 30 seconds.")
++    private int readTimeout = 30000;
+ 
 -    public int getCompressionLevel() {
 -      return compressionLevel;
 -    }
--
++    @Expose @Key("haproxy-protocol")
++    @Comment({"Enables compatibility with HAProxy's PROXY protocol. ",
++        "If you don't know what this is for, then don't enable it."})
++    private boolean proxyProtocol = false;
+ 
 -    public int getLoginRatelimit() {
 -      return loginRatelimit;
 -    }
--
++    @Expose @Key("tcp-fast-open")
++    @Comment("Enables TCP fast open support on the proxy. Requires the proxy to run on Linux.")
++    private boolean tcpFastOpen = false;
+ 
 -    public int getConnectionTimeout() {
 -      return connectionTimeout;
 -    }
--
++    @Expose @Key("bungee-plugin-message-channel")
++    @Comment("Enables BungeeCord plugin messaging channel support on Velocity.")
++    private boolean bungeePluginMessageChannel = true;
+ 
 -    public int getReadTimeout() {
 -      return readTimeout;
 -    }
--
++    @Expose @Key("show-ping-requests")
++    @Comment("# Shows ping requests to the proxy from clients.")
++    private boolean showPingRequests = false;
+ 
 -    public boolean isProxyProtocol() {
 -      return proxyProtocol;
 -    }
@@ -793,11 +777,17 @@ index f020b221..e937c43b 100644
 -    public boolean isAnnounceProxyCommands() {
 -      return announceProxyCommands;
 -    }
--
++    @Expose @Key("failover-on-unexpected-server-disconnect")
++    @Comment(value = "failoverOnUnexpectedServerDisconnect", enumClass = Comments.class)
++    private boolean failoverOnUnexpectedServerDisconnect = true;
+ 
 -    public boolean isLogCommandExecutions() {
 -      return logCommandExecutions;
 -    }
--
++    @Expose @Key("announce-proxy-commands")
++    @Comment("Declares the proxy commands to 1.13+ clients.")
++    private boolean announceProxyCommands = true;
+ 
 -    @Override
 -    public String toString() {
 -      return "Advanced{"
@@ -870,18 +860,22 @@ index f020b221..e937c43b 100644
 -    public int getQueryPort() {
 -      return queryPort;
 -    }
++  @SuppressFBWarnings(value = "SS_SHOULD_BE_STATIC", justification = "its ok")
++  public static class Messages implements ConfigurationSection {
  
 -    public String getQueryMap() {
 -      return queryMap;
 -    }
-+  public static class Messages implements ConfigurationSection {
++    @Key("kick-prefix") @Comment({"Prefix when the player gets kicked from a server.",
++        "First argument '%s': the server name"})
++    private final String kickPrefix = "&cKicked from %s: ";
  
 -    public boolean shouldQueryShowPlugins() {
 -      return showPlugins;
 -    }
-+    @Key("kick-prefix") @Comment({"Prefix when the player gets kicked from a server.",
++    @Key("disconnect-prefix") @Comment({"Prefix when the player is disconnected from a server.",
 +        "First argument '%s': the server name"})
-+    private final String kickPrefix = "&cKicked from %s: ";
++    private final String disconnectPrefix = "&cCan't connect to %s: ";
  
 -    @Override
 -    public String toString() {
@@ -893,32 +887,29 @@ index f020b221..e937c43b 100644
 -          + '}';
 -    }
 -  }
-+    @Key("disconnect-prefix") @Comment({"Prefix when the player is disconnected from a server.",
-+        "First argument '%s': the server name"})
-+    private final String disconnectPrefix = "&cCan't connect to %s: ";
- 
--  public static class Metrics {
--    private boolean enabled = true;
 +    @Key("online-mode-only")
 +    private final String onlineModeOnly = "&cThis server only accepts connections"
 +        + " from online-mode clients.\n\n&7Did you change your username?"
 +        + " Sign out of Minecraft, sign back in, and try again.";
+ 
+-  public static class Metrics {
+-    private boolean enabled = true;
++    @Key("no-available-servers")
++    private final String noAvailableServers = "&cThere are no available servers.";
  
 -    private Metrics(CommentedConfig toml) {
 -      if (toml != null) {
 -        this.enabled = toml.getOrElse("enabled", true);
 -      }
 -    }
-+    @Key("no-available-servers")
-+    private final String noAvailableServers = "&cThere are no available servers.";
++    @Key("already-connected")
++    private final String alreadyConnected = "&cYou are already connected to this proxy!";
  
 -    public boolean isEnabled() {
 -      return enabled;
 -    }
 -  }
-+    @Key("already-connected")
-+    private final String alreadyConnected = "&cYou are already connected to this proxy!";
- 
+-
 -  public static class Messages {
 -
 -    private final CommentedConfig toml;

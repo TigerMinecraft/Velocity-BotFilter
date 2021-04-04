@@ -1,4 +1,4 @@
-From e945662fc11f228aabf3f334b10e3d37d65d6586 Mon Sep 17 00:00:00 2001
+From 0b5e44d803c10a1377ec18c9ceb74d88a0920157 Mon Sep 17 00:00:00 2001
 From: Leymooo <vjatseslav.maspanov@gmail.com>
 Date: Sat, 3 Apr 2021 15:42:27 +0300
 Subject: [PATCH] Global ip rate limiter
@@ -56,7 +56,7 @@ index c7529ab3..8cf5adea 100644
     * Attempts to register the {@code connection} with the proxy.
     * @param connection the connection to register
 diff --git a/proxy/src/main/java/com/velocitypowered/proxy/config/VelocityConfiguration.java b/proxy/src/main/java/com/velocitypowered/proxy/config/VelocityConfiguration.java
-index e937c43b..47c304ed 100644
+index 4bd717e3..e4b0c17c 100644
 --- a/proxy/src/main/java/com/velocitypowered/proxy/config/VelocityConfiguration.java
 +++ b/proxy/src/main/java/com/velocitypowered/proxy/config/VelocityConfiguration.java
 @@ -17,9 +17,6 @@
@@ -154,14 +154,6 @@ index e937c43b..47c304ed 100644
      @Expose @Key("connection-timeout")
      @Comment("Specify a custom timeout for connection timeouts here. The default is five seconds.")
      private int connectionTimeout = 5000;
-@@ -579,7 +586,6 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
- 
-   }
- 
--
-   public static class Messages implements ConfigurationSection {
- 
-     @Key("kick-prefix") @Comment({"Prefix when the player gets kicked from a server.",
 diff --git a/proxy/src/main/java/com/velocitypowered/proxy/connection/client/HandshakeSessionHandler.java b/proxy/src/main/java/com/velocitypowered/proxy/connection/client/HandshakeSessionHandler.java
 index 2ce8f8db..c956b120 100644
 --- a/proxy/src/main/java/com/velocitypowered/proxy/connection/client/HandshakeSessionHandler.java
@@ -235,7 +227,7 @@ index 2c27b3fb..ff18ddc6 100644
      }
    }
 diff --git a/proxy/src/main/java/com/velocitypowered/proxy/util/ratelimit/GuavaCacheRatelimiter.java b/proxy/src/main/java/com/velocitypowered/proxy/util/ratelimit/GuavaCacheRatelimiter.java
-index 0c1976be..f0b73ee1 100644
+index 0c1976be..ed42ed8b 100644
 --- a/proxy/src/main/java/com/velocitypowered/proxy/util/ratelimit/GuavaCacheRatelimiter.java
 +++ b/proxy/src/main/java/com/velocitypowered/proxy/util/ratelimit/GuavaCacheRatelimiter.java
 @@ -22,32 +22,44 @@ import com.google.common.base.Preconditions;
@@ -302,12 +294,12 @@ index 0c1976be..f0b73ee1 100644
 -      // It should be impossible for this to fail.
 -      throw new AssertionError(e);
 +    //BotFilter - global rate limiter
-+    AtomicInteger curr = cache.getUnchecked(address);
-+    if (maxAttempts < curr.incrementAndGet()) {
-+      cache.put(address, curr); // reset timer
-+      return false;
++    AtomicInteger counter = cache.getUnchecked(address);
++    int curr = counter.incrementAndGet();
++    if (curr == (maxAttempts + 1)) {
++      cache.put(address, counter); // reset timer
 +    }
-+    return true;
++    return maxAttempts >= curr;
 +  }
 +
 +  //BotFilter - global rate limiter
@@ -364,7 +356,7 @@ index b9d7a293..4b05444a 100644
    }
  }
 diff --git a/proxy/src/test/java/com/velocitypowered/proxy/util/ratelimit/GuavaCacheRatelimiterTest.java b/proxy/src/test/java/com/velocitypowered/proxy/util/ratelimit/GuavaCacheRatelimiterTest.java
-index 39f50e7f..d522f339 100644
+index 39f50e7f..7ed4618e 100644
 --- a/proxy/src/test/java/com/velocitypowered/proxy/util/ratelimit/GuavaCacheRatelimiterTest.java
 +++ b/proxy/src/test/java/com/velocitypowered/proxy/util/ratelimit/GuavaCacheRatelimiterTest.java
 @@ -30,7 +30,13 @@ class GuavaCacheRatelimiterTest {
@@ -382,7 +374,7 @@ index 39f50e7f..d522f339 100644
      assertTrue(noRatelimiter.attempt(InetAddress.getLoopbackAddress()));
      assertTrue(noRatelimiter.attempt(InetAddress.getLoopbackAddress()));
    }
-@@ -45,11 +51,46 @@ class GuavaCacheRatelimiterTest {
+@@ -45,11 +51,50 @@ class GuavaCacheRatelimiterTest {
          return base + extra.get();
        }
      };
@@ -390,18 +382,22 @@ index 39f50e7f..d522f339 100644
 +    Ratelimiter ratelimiter = new GuavaCacheRatelimiter(1000, 3, TimeUnit.MILLISECONDS, testTicker);
 +    assertTrue(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
 +    assertTrue(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
-+    assertTrue(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
-+    assertFalse(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
-+    extra.addAndGet(TimeUnit.SECONDS.toNanos(2));
-+    assertTrue(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
      assertTrue(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
-+    assertTrue(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
-+    extra.addAndGet(TimeUnit.MILLISECONDS.toNanos(900));
      assertFalse(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
      extra.addAndGet(TimeUnit.SECONDS.toNanos(2));
      assertTrue(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
-   }
- 
++    assertTrue(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
++    assertTrue(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
++    extra.addAndGet(TimeUnit.MILLISECONDS.toNanos(999));
++    assertFalse(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
++    extra.addAndGet(TimeUnit.MILLISECONDS.toNanos(999));
++    assertFalse(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
++    extra.addAndGet(TimeUnit.MILLISECONDS.toNanos(2));
++    assertTrue(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
++    extra.addAndGet(TimeUnit.SECONDS.toNanos(2));
++    assertTrue(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
++  }
++
 +  @Test
 +  void unthrottleTest() {
 +    long base = System.nanoTime();
@@ -427,8 +423,8 @@ index 39f50e7f..d522f339 100644
 +    assertTrue(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
 +    assertTrue(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
 +    assertFalse(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
-+  }
-+
+   }
+ 
  }
 -- 
 2.29.2.windows.3
