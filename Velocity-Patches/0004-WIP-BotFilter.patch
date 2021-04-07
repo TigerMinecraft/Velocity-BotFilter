@@ -1,4 +1,4 @@
-From 94bef4df33abf550e6d03122f553edeccf182aaf Mon Sep 17 00:00:00 2001
+From fa77892b95d87279f326df04454f7170e86d3f08 Mon Sep 17 00:00:00 2001
 From: Leymooo <vjatseslav.maspanov@gmail.com>
 Date: Sun, 4 Apr 2021 11:14:53 +0300
 Subject: [PATCH] [WIP] BotFilter
@@ -829,6 +829,20 @@ index 8cf5adea..942a4869 100644
    public static Gson getPingGsonInstance(ProtocolVersion version) {
      return version.compareTo(ProtocolVersion.MINECRAFT_1_16) >= 0 ? POST_1_16_PING_SERIALIZER
          : PRE_1_16_PING_SERIALIZER;
+diff --git a/proxy/src/main/java/com/velocitypowered/proxy/connection/MinecraftConnection.java b/proxy/src/main/java/com/velocitypowered/proxy/connection/MinecraftConnection.java
+index 4d631896..ee83c4ea 100644
+--- a/proxy/src/main/java/com/velocitypowered/proxy/connection/MinecraftConnection.java
++++ b/proxy/src/main/java/com/velocitypowered/proxy/connection/MinecraftConnection.java
+@@ -246,7 +246,8 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
+     if (channel.isActive()) {
+       boolean is17 = this.getProtocolVersion().compareTo(ProtocolVersion.MINECRAFT_1_8) < 0
+           && this.getProtocolVersion().compareTo(ProtocolVersion.MINECRAFT_1_7_2) >= 0;
+-      if (is17 && this.getState() != StateRegistry.STATUS) {
++      //BotFilter looks like it works ok for Login protocol
++      if (is17 && this.getState() == StateRegistry.PLAY) {
+         channel.eventLoop().execute(() -> {
+           // 1.7.x versions have a race condition with switching protocol states, so just explicitly
+           // close the connection after a short while.
 diff --git a/proxy/src/main/java/com/velocitypowered/proxy/connection/MinecraftSessionHandler.java b/proxy/src/main/java/com/velocitypowered/proxy/connection/MinecraftSessionHandler.java
 index 3dcb3807..d529ba9f 100644
 --- a/proxy/src/main/java/com/velocitypowered/proxy/connection/MinecraftSessionHandler.java
@@ -853,7 +867,7 @@ index 3dcb3807..d529ba9f 100644
 +  //BotFilter end
  }
 diff --git a/proxy/src/main/java/com/velocitypowered/proxy/connection/client/LoginSessionHandler.java b/proxy/src/main/java/com/velocitypowered/proxy/connection/client/LoginSessionHandler.java
-index c1967e85..7a5d8790 100644
+index c1967e85..4dabe3a5 100644
 --- a/proxy/src/main/java/com/velocitypowered/proxy/connection/client/LoginSessionHandler.java
 +++ b/proxy/src/main/java/com/velocitypowered/proxy/connection/client/LoginSessionHandler.java
 @@ -51,6 +51,7 @@ import com.velocitypowered.proxy.protocol.packet.ServerLogin;
@@ -878,7 +892,7 @@ index c1967e85..7a5d8790 100644
        }
  
        // Initiate a regular connection and move over to it.
-@@ -239,37 +240,19 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
+@@ -239,40 +240,32 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
        this.connectedPlayer = player;
        if (!server.canRegisterConnection(player)) {
          player.disconnect0(server.getConfiguration().getMessages().getAlreadyConnected(), true);
@@ -917,22 +931,36 @@ index c1967e85..7a5d8790 100644
  
 -  private void completeLoginProtocolPhaseAndInitialize(ConnectedPlayer player) {
 +  private void injectBotFilterOrFinishLogin(ConnectedPlayer player) {
-     int threshold = server.getConfiguration().getCompressionThreshold();
-     if (threshold >= 0 && mcConnection.getProtocolVersion().compareTo(MINECRAFT_1_8) >= 0) {
-       mcConnection.write(new SetCompression(threshold));
-@@ -285,36 +268,63 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
-     success.setUuid(playerUniqueId);
-     mcConnection.write(success);
- 
++
 +    if (server.getBotFilter().shouldCheck(player)) {
-+      server.getBotFilter().setupPipelineAndStartCheck(player);
++      server.getBotFilter().setupPipelineAndStartCheck(player, this);
 +    } else {
-+      completeLoginProtocolPhaseAndInitialize(player);
++      completeLoginProtocol(player, true);
++      initialize(player);
 +    }
 +  }
 +
++  public void completeLoginProtocol(ConnectedPlayer player, boolean flush) {
+     int threshold = server.getConfiguration().getCompressionThreshold();
+     if (threshold >= 0 && mcConnection.getProtocolVersion().compareTo(MINECRAFT_1_8) >= 0) {
+-      mcConnection.write(new SetCompression(threshold));
++      mcConnection.delayedWrite(new SetCompression(threshold));
+       mcConnection.setCompressionThreshold(threshold);
+     }
+     VelocityConfiguration configuration = server.getConfiguration();
+@@ -283,38 +276,62 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
+     ServerLoginSuccess success = new ServerLoginSuccess();
+     success.setUsername(player.getUsername());
+     success.setUuid(playerUniqueId);
+-    mcConnection.write(success);
++    mcConnection.delayedWrite(success);
++    if (flush) {
++      mcConnection.flush();
++    }
++  }
+ 
 +
-+  private void completeLoginProtocolPhaseAndInitialize(ConnectedPlayer player) {
++  private void initialize(ConnectedPlayer player) {
      mcConnection.setAssociation(player);
      mcConnection.setState(StateRegistry.PLAY);
 -
@@ -1008,7 +1036,7 @@ index c1967e85..7a5d8790 100644
          }, mcConnection.eventLoop())
          .exceptionally((ex) -> {
            logger.error("Exception while completing login initialisation phase for {}", player, ex);
-@@ -332,7 +342,7 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
+@@ -332,7 +349,7 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
            Optional<RegisteredServer> toTry = event.getInitialServer();
            if (!toTry.isPresent()) {
              player.disconnect0(server.getConfiguration().getMessages()
@@ -1050,10 +1078,18 @@ index 7115bb8b..7b2184d9 100644
    default int expectedMaxLength(ByteBuf buf, ProtocolUtils.Direction direction,
        ProtocolVersion version) {
 diff --git a/proxy/src/main/java/com/velocitypowered/proxy/protocol/StateRegistry.java b/proxy/src/main/java/com/velocitypowered/proxy/protocol/StateRegistry.java
-index 87bc5d09..28c8b79a 100644
+index 87bc5d09..4c52cf6b 100644
 --- a/proxy/src/main/java/com/velocitypowered/proxy/protocol/StateRegistry.java
 +++ b/proxy/src/main/java/com/velocitypowered/proxy/protocol/StateRegistry.java
-@@ -265,7 +265,7 @@ public enum StateRegistry {
+@@ -72,6 +72,7 @@ import java.util.Map;
+ import java.util.Objects;
+ import java.util.function.Supplier;
+ import org.checkerframework.checker.nullness.qual.Nullable;
++import ru.leymooo.botfilter.protocol.BotFilterProtocol;
+ 
+ public enum StateRegistry {
+ 
+@@ -265,7 +266,7 @@ public enum StateRegistry {
        clientbound.register(LoginPluginMessage.class, LoginPluginMessage::new,
            map(0x04, MINECRAFT_1_13, false));
      }
@@ -1062,7 +1098,7 @@ index 87bc5d09..28c8b79a 100644
  
    public static final int STATUS_ID = 1;
    public static final int LOGIN_ID = 2;
-@@ -291,7 +291,8 @@ public enum StateRegistry {
+@@ -291,7 +292,8 @@ public enum StateRegistry {
        this.versions = Collections.unmodifiableMap(mutableVersions);
      }
  
@@ -1072,7 +1108,7 @@ index 87bc5d09..28c8b79a 100644
        ProtocolRegistry registry = versions.get(version);
        if (registry == null) {
          if (fallback) {
-@@ -302,7 +303,8 @@ public enum StateRegistry {
+@@ -302,7 +304,8 @@ public enum StateRegistry {
        return registry;
      }
  
@@ -1082,7 +1118,7 @@ index 87bc5d09..28c8b79a 100644
          PacketMapping... mappings) {
        if (mappings.length == 0) {
          throw new IllegalArgumentException("At least one mapping must be provided.");
-@@ -376,7 +378,7 @@ public enum StateRegistry {
+@@ -376,7 +379,7 @@ public enum StateRegistry {
        }
  
        /**
@@ -1091,7 +1127,7 @@ index 87bc5d09..28c8b79a 100644
         *
         * @param packet the packet to look up
         * @return the packet ID
-@@ -392,6 +394,23 @@ public enum StateRegistry {
+@@ -392,6 +395,23 @@ public enum StateRegistry {
          }
          return id;
        }
@@ -1115,7 +1151,7 @@ index 87bc5d09..28c8b79a 100644
      }
    }
  
-@@ -444,7 +463,8 @@ public enum StateRegistry {
+@@ -444,7 +464,8 @@ public enum StateRegistry {
     * @param encodeOnly When true packet decoding will be disabled
     * @return PacketMapping with the provided arguments
     */
@@ -1125,6 +1161,30 @@ index 87bc5d09..28c8b79a 100644
      return new PacketMapping(id, version, encodeOnly);
    }
  
+diff --git a/proxy/src/main/java/com/velocitypowered/proxy/protocol/netty/MinecraftCipherEncoder.java b/proxy/src/main/java/com/velocitypowered/proxy/protocol/netty/MinecraftCipherEncoder.java
+index b4fd027e..95467463 100644
+--- a/proxy/src/main/java/com/velocitypowered/proxy/protocol/netty/MinecraftCipherEncoder.java
++++ b/proxy/src/main/java/com/velocitypowered/proxy/protocol/netty/MinecraftCipherEncoder.java
+@@ -35,6 +35,7 @@ public class MinecraftCipherEncoder extends MessageToMessageEncoder<ByteBuf> {
+ 
+   @Override
+   protected void encode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out) throws Exception {
++    System.out.println("encrypting");
+     ByteBuf compatible = MoreByteBufUtils.ensureCompatible(ctx.alloc(), cipher, msg);
+     try {
+       cipher.process(compatible);
+diff --git a/proxy/src/main/java/com/velocitypowered/proxy/protocol/netty/MinecraftCompressEncoder.java b/proxy/src/main/java/com/velocitypowered/proxy/protocol/netty/MinecraftCompressEncoder.java
+index f6cb495c..49007eb9 100644
+--- a/proxy/src/main/java/com/velocitypowered/proxy/protocol/netty/MinecraftCompressEncoder.java
++++ b/proxy/src/main/java/com/velocitypowered/proxy/protocol/netty/MinecraftCompressEncoder.java
+@@ -36,6 +36,7 @@ public class MinecraftCompressEncoder extends MessageToByteEncoder<ByteBuf> {
+ 
+   @Override
+   protected void encode(ChannelHandlerContext ctx, ByteBuf msg, ByteBuf out) throws Exception {
++    System.out.println("compressing 2");
+     int uncompressed = msg.readableBytes();
+     if (uncompressed < threshold) {
+       // Under the threshold, there is nothing to do.
 diff --git a/proxy/src/main/java/com/velocitypowered/proxy/protocol/netty/MinecraftVarintLengthEncoder.java b/proxy/src/main/java/com/velocitypowered/proxy/protocol/netty/MinecraftVarintLengthEncoder.java
 index 867ea9b7..9559b63e 100644
 --- a/proxy/src/main/java/com/velocitypowered/proxy/protocol/netty/MinecraftVarintLengthEncoder.java
@@ -1139,10 +1199,10 @@ index 867ea9b7..9559b63e 100644
    }
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/BotFilter.java b/proxy/src/main/java/ru/leymooo/botfilter/BotFilter.java
 new file mode 100644
-index 00000000..33afc7e0
+index 00000000..36ac7ce6
 --- /dev/null
 +++ b/proxy/src/main/java/ru/leymooo/botfilter/BotFilter.java
-@@ -0,0 +1,89 @@
+@@ -0,0 +1,90 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -1166,10 +1226,10 @@ index 00000000..33afc7e0
 +import com.velocitypowered.proxy.VelocityServer;
 +import com.velocitypowered.proxy.connection.MinecraftConnection;
 +import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
++import com.velocitypowered.proxy.connection.client.LoginSessionHandler;
 +import com.velocitypowered.proxy.network.Connections;
 +import com.velocitypowered.proxy.protocol.StateRegistry;
 +import io.netty.channel.ChannelPipeline;
-+import java.net.InetAddress;
 +import lombok.Getter;
 +import lombok.ToString;
 +import org.apache.logging.log4j.LogManager;
@@ -1196,26 +1256,27 @@ index 00000000..33afc7e0
 +    this.velocityServer = velocityServer;
 +    this.botFilterConfiguration = BotFilterConfiguration.create();
 +    this.virtualServer = new VirtualServer(this);
++    this.virtualServer.reload();
 +  }
 +
 +  public boolean shouldCheck(ConnectedPlayer player) {
 +    return true;
 +  }
 +
-+  public void setupPipelineAndStartCheck(ConnectedPlayer player) {
++  public void setupPipelineAndStartCheck(ConnectedPlayer player, LoginSessionHandler handler) {
 +    try {
-+      BotFilterSessionHandler sessionHandler = new BotFilterSessionHandler(player, virtualServer);
++      BotFilterSessionHandler sessionHandler = new BotFilterSessionHandler(player, handler,
++          virtualServer);
 +      LOGGER.info(sessionHandler.getPlayer().getUsername());
 +
 +      MinecraftConnection connection = sessionHandler.getPlayer().getConnection();
-+      connection.setState(StateRegistry.BotFilter);
 +      connection.setSessionHandler(sessionHandler);
 +
 +      ChannelPipeline pipeline = connection.getChannel().pipeline();
 +
 +      System.out.println(pipeline.toMap());
 +      if (sessionHandler.getPlayer().isOnlineMode()) {
-+        pipeline.addBefore(Connections.CIPHER_ENCODER, "prepared-encoder",
++        pipeline.addAfter(Connections.CIPHER_ENCODER, "prepared-encoder",
 +            PreparedPacketEncoder.getEncoder(connection.getProtocolVersion(), true));
 +      } else {
 +        pipeline.addFirst("prepared-encoder",
@@ -1234,10 +1295,10 @@ index 00000000..33afc7e0
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/config/BotFilterConfiguration.java b/proxy/src/main/java/ru/leymooo/botfilter/config/BotFilterConfiguration.java
 new file mode 100644
-index 00000000..90dd7e1d
+index 00000000..ed81f310
 --- /dev/null
 +++ b/proxy/src/main/java/ru/leymooo/botfilter/config/BotFilterConfiguration.java
-@@ -0,0 +1,51 @@
+@@ -0,0 +1,46 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -1265,7 +1326,6 @@ index 00000000..90dd7e1d
 +import ru.leymooo.annotatedyaml.Annotations.Key;
 +import ru.leymooo.annotatedyaml.Configuration;
 +import ru.leymooo.annotatedyaml.provider.StandaloneConfigurationProvider;
-+import ru.leymooo.botfilter.protocol.util.PreparedPacket.OnlineModeSupport;
 +
 +@Getter
 +@ToString
@@ -1275,10 +1335,6 @@ index 00000000..90dd7e1d
 +  @Final
 +  @Key("config-version")
 +  private final String configVersion = "1.0";
-+
-+  @Final
-+  @Key("online-mode-support")
-+  private OnlineModeSupport onlineModeSupport = OnlineModeSupport.OFFLINE_MODE_ONLY;
 +
 +
 +  public static BotFilterConfiguration create() {
@@ -1444,10 +1500,10 @@ index 00000000..bb6364bb
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/netty/PreparedPacketEncoder.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/netty/PreparedPacketEncoder.java
 new file mode 100644
-index 00000000..eb9ac9c7
+index 00000000..3fd1ce8e
 --- /dev/null
 +++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/netty/PreparedPacketEncoder.java
-@@ -0,0 +1,80 @@
+@@ -0,0 +1,73 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -1480,7 +1536,6 @@ index 00000000..eb9ac9c7
 +import lombok.RequiredArgsConstructor;
 +import ru.leymooo.botfilter.protocol.util.ByteBufCreator;
 +import ru.leymooo.botfilter.protocol.util.PreparedPacket;
-+import ru.leymooo.botfilter.protocol.util.PreparedPacket.OnlineModeSupport;
 +
 +@Sharable
 +@RequiredArgsConstructor
@@ -1490,6 +1545,14 @@ index 00000000..eb9ac9c7
 +  private static final boolean IS_JAVA_CIPHER = Natives.cipher.get() == JavaVelocityCipher.FACTORY;
 +  private static Table<ProtocolVersion, Boolean, PreparedPacketEncoder> encoders = HashBasedTable
 +      .create(ProtocolVersion.SUPPORTED_VERSIONS.size(), 2);
++
++
++  static {
++    for (ProtocolVersion version : ProtocolVersion.SUPPORTED_VERSIONS) {
++      encoders.put(version, true, new PreparedPacketEncoder(version, true));
++      encoders.put(version, false, new PreparedPacketEncoder(version, false));
++    }
++  }
 +  private final ProtocolVersion protocolVersion;
 +  private final boolean onlineMode;
 +
@@ -1498,31 +1561,17 @@ index 00000000..eb9ac9c7
 +  protected void encode(ChannelHandlerContext ctx, PreparedPacket msg, ByteBuf out)
 +      throws Exception {
 +    System.out.println("encoding prepared");
-+    out.writeBytes(msg.getBuffer(onlineMode, protocolVersion));
++    out.writeBytes(msg.getBuffer(protocolVersion));
 +  }
 +
 +  @Override
 +  protected ByteBuf allocateBuffer(ChannelHandlerContext ctx, PreparedPacket msg,
 +      boolean preferDirect) throws Exception {
-+    int length = msg.getBufferLength(onlineMode, protocolVersion);
++    int length = msg.getBufferLength(protocolVersion);
 +    boolean direct = onlineMode ? IS_JAVA_CIPHER : ByteBufCreator.isDirectBufferPreferred();
 +    return direct ? ctx.alloc().directBuffer(length) : ctx.alloc().heapBuffer(length);
 +  }
 +
-+
-+  public static void init(OnlineModeSupport onlineModeSupport) {
-+
-+    for (ProtocolVersion version : ProtocolVersion.SUPPORTED_VERSIONS) {
-+      if (onlineModeSupport == OnlineModeSupport.BOTH) {
-+        encoders.put(version, true, new PreparedPacketEncoder(version, true));
-+        encoders.put(version, false, new PreparedPacketEncoder(version, false));
-+      } else if (onlineModeSupport == OnlineModeSupport.ONLINE_MODE_ONLY) {
-+        encoders.put(version, true, new PreparedPacketEncoder(version, true));
-+      } else {
-+        encoders.put(version, false, new PreparedPacketEncoder(version, false));
-+      }
-+    }
-+  }
 +
 +  public static PreparedPacketEncoder getEncoder(ProtocolVersion version, boolean onlineMode) {
 +    return encoders.get(version, onlineMode);
@@ -2554,10 +2603,10 @@ index 00000000..433bb073
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/MultiplePreparedPackets.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/MultiplePreparedPackets.java
 new file mode 100644
-index 00000000..58303ce3
+index 00000000..70000654
 --- /dev/null
 +++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/MultiplePreparedPackets.java
-@@ -0,0 +1,103 @@
+@@ -0,0 +1,99 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -2582,64 +2631,51 @@ index 00000000..58303ce3
 +import com.velocitypowered.api.network.ProtocolVersion;
 +import com.velocitypowered.proxy.connection.MinecraftConnection;
 +import io.netty.buffer.ByteBuf;
-+import io.netty.channel.Channel;
 +import java.util.EnumMap;
 +import java.util.EnumSet;
++import java.util.HashSet;
 +import java.util.Map;
-+import ru.leymooo.botfilter.protocol.util.ByteBufCreator;
-+import ru.leymooo.botfilter.protocol.util.PreparedPacket;
-+import ru.leymooo.botfilter.protocol.util.PreparedPacket.OnlineModeSupport;
 +
 +public class MultiplePreparedPackets {
 +
-+  private OnlineModeSupport onlineModeSupport;
 +  private Map<ProtocolVersion, ByteBuf> multiplePayloadBuf = new EnumMap<ProtocolVersion, ByteBuf>(
 +      ProtocolVersion.class);
 +  private PreparedPacket[] onlineModePackets;
 +
-+  public MultiplePreparedPackets(OnlineModeSupport onlineMode, PreparedPacket... preparedPackets) {
++  public MultiplePreparedPackets(PreparedPacket... preparedPackets) {
 +    for (PreparedPacket packet : preparedPackets) {
-+      Preconditions.checkState(packet.isAdapted(), "PreparedPacket is not adapted");
++      Preconditions.checkState(packet.isFinished(), "PreparedPacket is not adapted");
 +    }
-+    this.onlineModeSupport = onlineMode;
-+    if (onlineMode.isOnlineModeSupported()) {
-+      onlineModePackets = new PreparedPacket[preparedPackets.length];
-+    }
-+    createPayload(preparedPackets);
++    onlineModePackets = preparedPackets;
++    createOfflineModePayload(preparedPackets);
 +  }
 +
-+  private void createPayload(PreparedPacket... preparedPackets) {
-+    if (onlineModeSupport.isOnlineModeSupported()) {
-+      this.onlineModePackets = preparedPackets;
-+    }
-+
-+    if (onlineModeSupport.isOfflineModeSupported()) {
-+      for (ProtocolVersion protocolVersion : EnumSet
-+          .range(ProtocolVersion.MINIMUM_VERSION, ProtocolVersion.MAXIMUM_VERSION)) {
-+        ByteBuf multiple = ByteBufCreator.newBuffer();
-+        for (PreparedPacket preparedPacket : preparedPackets) {
-+          ByteBuf buf = preparedPacket.getBuffer(false, protocolVersion);
-+          if (buf == null) {
-+            continue;
-+          }
-+          multiple.writeBytes(buf);
-+          buf.release();
-+        }
-+
-+        if (multiple.readableBytes() == 0) {
-+          multiple.release();
++  private void createOfflineModePayload(PreparedPacket... preparedPackets) {
++    for (ProtocolVersion protocolVersion : EnumSet
++        .range(ProtocolVersion.MINIMUM_VERSION, ProtocolVersion.MAXIMUM_VERSION)) {
++      ByteBuf multiple = ByteBufCreator.newBuffer();
++      for (PreparedPacket preparedPacket : preparedPackets) {
++        ByteBuf buf = preparedPacket.getBuffer(protocolVersion);
++        if (buf == null) {
 +          continue;
 +        }
-+        //Deduplicate
-+        for (ByteBuf byteBuf : multiplePayloadBuf.values()) {
-+          if (byteBuf.equals(multiple)) {
-+            multiple.release();
-+            multiple = byteBuf;
-+            break;
-+          }
-+        }
-+        multiplePayloadBuf.put(protocolVersion, multiple);
++        multiple.writeBytes(buf);
++        buf.release();
 +      }
++
++      if (multiple.readableBytes() == 0) {
++        multiple.release();
++        continue;
++      }
++      //Deduplicate
++      for (ByteBuf byteBuf : multiplePayloadBuf.values()) {
++        if (byteBuf.equals(multiple)) {
++          multiple.release();
++          multiple = byteBuf;
++          break;
++        }
++      }
++      multiplePayloadBuf.put(protocolVersion, multiple);
 +    }
 +  }
 +
@@ -2660,13 +2696,22 @@ index 00000000..58303ce3
 +  public int getBuffetLength(ProtocolVersion protocolVersion) {
 +    return multiplePayloadBuf.get(protocolVersion).readableBytes();
 +  }
++
++  public void release() {
++    for (PreparedPacket preparedPacket : onlineModePackets) {
++      preparedPacket.releaseBuffers();
++    }
++    for (ByteBuf byteBuf : new HashSet<>(multiplePayloadBuf.values())) {
++      byteBuf.release();
++    }
++  }
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/PacketCompressor.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/PacketCompressor.java
 new file mode 100644
-index 00000000..ae281c03
+index 00000000..f9cd2100
 --- /dev/null
 +++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/PacketCompressor.java
-@@ -0,0 +1,68 @@
+@@ -0,0 +1,70 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -2693,32 +2738,34 @@ index 00000000..ae281c03
 +import com.velocitypowered.proxy.protocol.ProtocolUtils;
 +import io.netty.buffer.ByteBuf;
 +import io.netty.buffer.Unpooled;
++import java.util.function.Supplier;
 +
 +public class PacketCompressor {
 +
 +  private final ThreadLocal<VelocityCompressor> compressors = ThreadLocal
 +      .withInitial(() -> Natives.compress.get().create(12));
-+  private final VelocityConfiguration velocityConfiguration;
++  private final Supplier<VelocityConfiguration> velocityConfiguration;
 +
 +  /**
 +   * Constructs VelocityPacketCompressor.
 +   *
 +   * @param velocityConfiguration configuration
 +   */
-+  public PacketCompressor(VelocityConfiguration velocityConfiguration) {
++  public PacketCompressor(Supplier<VelocityConfiguration> velocityConfiguration) {
 +    this.velocityConfiguration = velocityConfiguration;
 +
 +  }
 +
 +  public boolean isCompressionEnabled() {
-+    return velocityConfiguration.getCompressionThreshold() >= 0;
++    return velocityConfiguration.get().getCompressionThreshold() >= 0;
 +  }
 +
 +  public boolean shouldCompress(int i) {
-+    return isCompressionEnabled() && i >= velocityConfiguration.getCompressionThreshold();
++    return isCompressionEnabled() && i >= velocityConfiguration.get().getCompressionThreshold();
 +  }
 +
 +  public ByteBuf compress(ByteBuf source) {
++    System.out.println("compressing");
 +    VelocityCompressor compressor = compressors.get();
 +    ByteBuf destination =
 +        ByteBufCreator.isDirectBufferPreferred() ? Unpooled.directBuffer() : Unpooled.buffer();
@@ -2737,10 +2784,10 @@ index 00000000..ae281c03
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/PreparedPacket.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/PreparedPacket.java
 new file mode 100644
-index 00000000..0f4586b8
+index 00000000..6d0d0829
 --- /dev/null
 +++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/PreparedPacket.java
-@@ -0,0 +1,228 @@
+@@ -0,0 +1,206 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -2770,15 +2817,24 @@ index 00000000..0f4586b8
 +import io.netty.util.ReferenceCountUtil;
 +import java.util.EnumMap;
 +import java.util.EnumSet;
++import java.util.HashSet;
 +import java.util.Map;
 +import java.util.Map.Entry;
++import ru.leymooo.botfilter.protocol.BotFilterProtocol;
 +
 +
 +public class PreparedPacket<T extends MinecraftPacket> {
 +
-+  private Map<ProtocolVersion, ByteBufHolder> offlineMode = new EnumMap<>(ProtocolVersion.class);
-+  private Map<ProtocolVersion, ByteBufHolder> onlineMode;
-+  private OnlineModeSupport onlineModeSupport;
++  static {
++    BotFilterProtocol.init();
++  }
++
++  private final Map<ProtocolVersion, ByteBufHolder> offlineMode =
++      new EnumMap<>(ProtocolVersion.class);
++  private boolean finished = false;
++
++  public PreparedPacket() {
++  }
 +
 +  public void prepareSinge(T packet, ProtocolVersion version) {
 +    prepare(packet, version, version);
@@ -2804,7 +2860,6 @@ index 00000000..0f4586b8
 +    for (ProtocolVersion protocolVersion : EnumSet.range(from, to)) {
 +      ByteBuf buf = encodePacket(packet, protocolVersion, protocol);
 +      ByteBufHolder holder = getHolder(buf, protocolVersion);
-+      holder.versions.add(protocolVersion);
 +      offlineMode.put(protocolVersion, holder);
 +    }
 +  }
@@ -2838,42 +2893,21 @@ index 00000000..0f4586b8
 +    }
 +  }
 +
-+  public ByteBuf getBuffer(boolean onlineMode, ProtocolVersion version) {
-+    ByteBufHolder holder = onlineMode ? this.onlineMode.get(version) : offlineMode.get(version);
++  public ByteBuf getBuffer(ProtocolVersion version) {
++    ByteBufHolder holder =  offlineMode.get(version);
 +    return holder == null ? null : holder.byteBuf.retainedSlice();
 +  }
 +
 +
-+  public int getBufferLength(boolean onlineMode, ProtocolVersion version) {
-+    ByteBufHolder holder = onlineMode ? this.onlineMode.get(version) : offlineMode.get(version);
++  public int getBufferLength(ProtocolVersion version) {
++    ByteBufHolder holder =  offlineMode.get(version);
 +    return holder == null ? 0 : holder.byteBuf.readableBytes();
 +  }
 +
-+  public boolean isAdapted() {
-+    return onlineModeSupport != null;
++  public boolean isFinished() {
++    return finished;
 +  }
 +
-+  public void adapt(OnlineModeSupport onlineModeSupport) {
-+    this.onlineModeSupport = onlineModeSupport;
-+    if (onlineModeSupport == OnlineModeSupport.ONLINE_MODE_ONLY) {
-+      this.onlineMode = this.offlineMode;
-+      this.offlineMode = null;
-+      return;
-+    }
-+
-+    if (onlineModeSupport == OnlineModeSupport.BOTH) {
-+      onlineMode = new EnumMap<>(ProtocolVersion.class);
-+      for (ByteBufHolder value : offlineMode.values()) {
-+        ByteBufHolder byteBufHolder = new ByteBufHolder(value.mc1_7, value.byteBuf.copy());
-+        byteBufHolder.compressed = value.compressed;
-+        byteBufHolder.versions = value.versions;
-+        for (ProtocolVersion version : value.versions) {
-+          onlineMode.put(version, byteBufHolder);
-+        }
-+      }
-+    }
-+    writeVarintLength();
-+  }
 +
 +  private ByteBufHolder getHolder(ByteBuf buf, ProtocolVersion version) {
 +    if (version.isBefore(ProtocolVersion.MINECRAFT_1_8)) {
@@ -2885,7 +2919,7 @@ index 00000000..0f4586b8
 +      return new ByteBufHolder(true, buf);
 +    }
 +
-+    for (ByteBufHolder holder : offlineMode.values()) {
++    for (ByteBufHolder holder : new HashSet<>(offlineMode.values())) {
 +      if (!holder.mc1_7 && holder.byteBuf.equals(buf)) {
 +        buf.release();
 +        return holder;
@@ -2896,7 +2930,7 @@ index 00000000..0f4586b8
 +
 +
 +  public void processCompress(PacketCompressor packetCompressor) {
-+    if (onlineModeSupport != null) {
++    if (finished) {
 +      throw new IllegalStateException("Packet compression does not allowed after adapt");
 +    }
 +    for (Entry<ProtocolVersion, ByteBufHolder> prepared : offlineMode.entrySet()) {
@@ -2920,7 +2954,7 @@ index 00000000..0f4586b8
 +    }
 +  }
 +
-+  private void writeVarintLength() {
++  public void finish() {
 +    for (Entry<ProtocolVersion, ByteBufHolder> prepared : offlineMode.entrySet()) {
 +      ByteBufHolder holder = prepared.getValue();
 +      if (holder.varint) {
@@ -2935,20 +2969,12 @@ index 00000000..0f4586b8
 +      holder.byteBuf = buf;
 +      holder.varint = true;
 +    }
++    finished = true;
 +  }
 +
-+
-+  public enum OnlineModeSupport {
-+    OFFLINE_MODE_ONLY,
-+    ONLINE_MODE_ONLY,
-+    BOTH;
-+
-+    public boolean isOnlineModeSupported() {
-+      return this != OFFLINE_MODE_ONLY;
-+    }
-+
-+    public boolean isOfflineModeSupported() {
-+      return this != ONLINE_MODE_ONLY;
++  public void releaseBuffers() {
++    for (ByteBufHolder holder : new HashSet<>(offlineMode.values())) {
++      holder.byteBuf.release();
 +    }
 +  }
 +
@@ -2956,7 +2982,6 @@ index 00000000..0f4586b8
 +
 +    private final boolean mc1_7;
 +    private ByteBuf byteBuf;
-+    private EnumSet<ProtocolVersion> versions = EnumSet.noneOf(ProtocolVersion.class);
 +    private boolean compressed = false;
 +    private boolean varint = false;
 +
@@ -2971,10 +2996,10 @@ index 00000000..0f4586b8
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/server/BotFilterSessionHandler.java b/proxy/src/main/java/ru/leymooo/botfilter/server/BotFilterSessionHandler.java
 new file mode 100644
-index 00000000..9705ae00
+index 00000000..6a7455d6
 --- /dev/null
 +++ b/proxy/src/main/java/ru/leymooo/botfilter/server/BotFilterSessionHandler.java
-@@ -0,0 +1,61 @@
+@@ -0,0 +1,63 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -2998,6 +3023,7 @@ index 00000000..9705ae00
 +
 +import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
 +import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
++import com.velocitypowered.proxy.connection.client.LoginSessionHandler;
 +import java.util.Objects;
 +import lombok.Data;
 +
@@ -3006,6 +3032,7 @@ index 00000000..9705ae00
 +
 +
 +  private final ConnectedPlayer player;
++  private final LoginSessionHandler originalHandler;
 +  private final VirtualServer virtualServer;
 +
 +  @Override
@@ -3036,12 +3063,12 @@ index 00000000..9705ae00
 +    return Objects.hash(player.getUsername());
 +  }
 +}
-diff --git a/proxy/src/main/java/ru/leymooo/botfilter/server/VirtualServer.java b/proxy/src/main/java/ru/leymooo/botfilter/server/VirtualServer.java
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/server/ServerPackets.java b/proxy/src/main/java/ru/leymooo/botfilter/server/ServerPackets.java
 new file mode 100644
-index 00000000..355c23b5
+index 00000000..4f470791
 --- /dev/null
-+++ b/proxy/src/main/java/ru/leymooo/botfilter/server/VirtualServer.java
-@@ -0,0 +1,134 @@
++++ b/proxy/src/main/java/ru/leymooo/botfilter/server/ServerPackets.java
+@@ -0,0 +1,133 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -3067,13 +3094,11 @@ index 00000000..355c23b5
 +import com.velocitypowered.proxy.connection.registry.DimensionInfo;
 +import com.velocitypowered.proxy.protocol.StateRegistry;
 +import com.velocitypowered.proxy.protocol.packet.Disconnect;
-+import java.util.concurrent.ConcurrentHashMap;
-+import java.util.concurrent.ConcurrentMap;
++import java.util.Arrays;
++import lombok.Getter;
 +import net.kyori.adventure.text.Component;
-+import net.kyori.adventure.text.format.NamedTextColor;
-+import ru.leymooo.botfilter.BotFilter;
-+import ru.leymooo.botfilter.protocol.BotFilterProtocol;
-+import ru.leymooo.botfilter.protocol.netty.PreparedPacketEncoder;
++import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
++import ru.leymooo.botfilter.config.BotFilterConfiguration;
 +import ru.leymooo.botfilter.protocol.packet.JoinGame;
 +import ru.leymooo.botfilter.protocol.packet.PlayerPositionAndLook;
 +import ru.leymooo.botfilter.protocol.packet.world.EmptyChunk;
@@ -3087,25 +3112,28 @@ index 00000000..355c23b5
 +import ru.leymooo.botfilter.protocol.util.PacketCompressor;
 +import ru.leymooo.botfilter.protocol.util.PreparedPacket;
 +
-+public class VirtualServer {
++@Getter
++public class ServerPackets {
 +
-+  private final BotFilter botFilter;
-+  private final ConcurrentMap<String, BotFilterSessionHandler> activeConnections = new ConcurrentHashMap<>();
++  //JoinGame + PlayerPosAndLook + Chunk
++  private final PacketCompressor packetCompressor;
 +  private MultiplePreparedPackets spawnPackets;
 +  private PreparedPacket<Disconnect> alreadyConnected;
 +
-+
-+  public VirtualServer(BotFilter botFilter) {
-+    this.botFilter = botFilter;
-+    initPackets();
++  public ServerPackets(PacketCompressor packetCompressor) {
++    this.packetCompressor = packetCompressor;
 +  }
 +
-+  private void initPackets() {
-+    BotFilterProtocol.init();
-+    PreparedPacketEncoder.init(botFilter.getBotFilterConfiguration().getOnlineModeSupport());
-+    PacketCompressor compressor = new PacketCompressor(
-+        botFilter.getVelocityServer().getConfiguration());
 +
++  public void createPackets(BotFilterConfiguration configuration) {
++    releaseAll();
++    spawnPackets = new MultiplePreparedPackets(createJoinGamePacket(),
++        createPlayerPosAndLookPacket(), createEmptyChunkPacket());
++    alreadyConnected = createDisconnectPacket("&cAlready connected", StateRegistry.LOGIN);
++
++  }
++
++  private PreparedPacket<JoinGame> createJoinGamePacket() {
 +    DimensionRegistry dimensionRegistry = new DimensionRegistry();
 +    dimensionRegistry.addDimension(
 +        Dimension.OVERWORLD, ImmutableList.of(Biome.PLAINTS, Biome.SWAMP, Biome.SWAMP_HILLS));
@@ -3117,9 +3145,17 @@ index 00000000..355c23b5
 +        partialHashedSeed(1).difficulty((short) 0).maxPlayers(1).levelType("flat").viewDistance(4)
 +        .reducedDebugInfo(false).showRespawnScreen(true).hardcore(false)
 +        .dimensionRegistry(dimensionRegistry).build());
++
++    return processCompression(joinGame);
++  }
++
++  private PreparedPacket<PlayerPositionAndLook> createPlayerPosAndLookPacket() {
 +    PreparedPacket<PlayerPositionAndLook> playerPosAndLook = new PreparedPacket<>();
 +    playerPosAndLook.prepare(new PlayerPositionAndLook(0, 60, 0, 0f, 0f, -133, false));
++    return processCompression(playerPosAndLook);
++  }
 +
++  private PreparedPacket<EmptyChunk> createEmptyChunkPacket() {
 +    PreparedPacket<EmptyChunk> chunkPacket = new PreparedPacket<>();
 +    chunkPacket.prepare(new EmptyChunk17(0, 0), ProtocolVersion.MINECRAFT_1_7_2,
 +        ProtocolVersion.MINECRAFT_1_7_6);
@@ -3127,45 +3163,114 @@ index 00000000..355c23b5
 +        ProtocolVersion.MINECRAFT_1_12_2);
 +    chunkPacket.prepare(new EmptyChunk113(0, 0), ProtocolVersion.MINECRAFT_1_13,
 +        ProtocolVersion.MAXIMUM_VERSION);
-+
-+    alreadyConnected = new PreparedPacket<>();
-+    Component component = Component.text("Already connected").color(NamedTextColor.RED)
-+        .asComponent();
-+    alreadyConnected.prepare(Disconnect.create(component, ProtocolVersion.MINECRAFT_1_7_2),
-+        ProtocolVersion.MINECRAFT_1_7_2, ProtocolVersion.MINECRAFT_1_15_2, StateRegistry.PLAY);
-+    alreadyConnected.prepare(Disconnect.create(component, ProtocolVersion.MINECRAFT_1_7_2),
-+        ProtocolVersion.MINECRAFT_1_16, ProtocolVersion.MAXIMUM_VERSION, StateRegistry.PLAY);
-+
-+    processCompressionAndAdapt(compressor, joinGame, playerPosAndLook, chunkPacket,
-+        alreadyConnected);
-+    spawnPackets = new MultiplePreparedPackets(
-+        botFilter.getBotFilterConfiguration().getOnlineModeSupport(), joinGame, playerPosAndLook,
-+        chunkPacket);
++    return processCompression(chunkPacket);
 +  }
 +
-+  private void processCompressionAndAdapt(PreparedPacket packet, PacketCompressor compressor) {
-+    if (compressor.isCompressionEnabled()) {
-+      packet.processCompress(compressor);
++  private PreparedPacket<Disconnect> createDisconnectPacket(String message,
++      StateRegistry protocol) {
++    Component component = LegacyComponentSerializer.legacyAmpersand().deserialize(message);
++    PreparedPacket<Disconnect> disconnect = new PreparedPacket<>();
++    disconnect.prepare(Disconnect.create(component, ProtocolVersion.MINECRAFT_1_7_2),
++        ProtocolVersion.MINECRAFT_1_7_2, ProtocolVersion.MINECRAFT_1_15_2, protocol);
++    disconnect.prepare(Disconnect.create(component, ProtocolVersion.MINECRAFT_1_16),
++        ProtocolVersion.MINECRAFT_1_16, ProtocolVersion.MAXIMUM_VERSION, protocol);
++    if (protocol == StateRegistry.LOGIN) {
++      disconnect.finish();
++      return disconnect;
 +    }
-+    packet.adapt(botFilter.getBotFilterConfiguration().getOnlineModeSupport());
++    return processCompression(disconnect);
 +  }
 +
-+  private void processCompressionAndAdapt(PacketCompressor compressor, PreparedPacket... packets) {
-+    for (PreparedPacket packet : packets) {
-+      processCompressionAndAdapt(packet, compressor);
++  private <T extends PreparedPacket<?>> T processCompression(T preparedPacket) {
++    if (packetCompressor.isCompressionEnabled()) {
++      preparedPacket.processCompress(packetCompressor);
++    }
++    preparedPacket.finish();
++    return preparedPacket;
++  }
++
++
++  public void releaseAll() {
++    for (PreparedPacket packet : Arrays.asList(alreadyConnected)) {
++      if (packet != null) {
++        packet.releaseBuffers();
++      }
++    }
++    if (spawnPackets != null) {
++      spawnPackets.release();
 +    }
 +  }
++
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/server/VirtualServer.java b/proxy/src/main/java/ru/leymooo/botfilter/server/VirtualServer.java
+new file mode 100644
+index 00000000..f71f872b
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/server/VirtualServer.java
+@@ -0,0 +1,73 @@
++/*
++ * Velocity-BotFilter
++ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package ru.leymooo.botfilter.server;
++
++import com.velocitypowered.proxy.connection.MinecraftConnection;
++import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
++import com.velocitypowered.proxy.protocol.StateRegistry;
++import java.util.concurrent.ConcurrentHashMap;
++import java.util.concurrent.ConcurrentMap;
++import ru.leymooo.botfilter.BotFilter;
++import ru.leymooo.botfilter.protocol.util.PacketCompressor;
++
++public class VirtualServer {
++
++  private final BotFilter botFilter;
++  private final ConcurrentMap<String, BotFilterSessionHandler> activeConnections = new ConcurrentHashMap<>();
++  private final ServerPackets packets;
++
++
++  public VirtualServer(BotFilter botFilter) {
++    this.botFilter = botFilter;
++    this.packets = new ServerPackets(
++        new PacketCompressor(botFilter.getVelocityServer()::getConfiguration));
++  }
++
++
++  public void reload() {
++    for (BotFilterSessionHandler session : activeConnections.values()) {
++      session.getPlayer().getConnection().close();
++    }
++    packets.createPackets(botFilter.getBotFilterConfiguration());
++  }
++
 +
 +  public void spawnPlayer(BotFilterSessionHandler user) {
-+
 +    String username = user.getPlayer().getUsername().toLowerCase();
++    ConnectedPlayer player = user.getPlayer();
++    MinecraftConnection connection = player.getConnection();
 +    if (activeConnections.putIfAbsent(username, user) != null) {
-+      user.getPlayer().getConnection().closeWith(alreadyConnected);
++      connection.closeWith(packets.getAlreadyConnected());
 +      //user.closeWith(preparedPackets.getAlreadyConnected());
 +      return;
 +    }
-+    spawnPackets.write(user.getPlayer().getConnection(), user.getPlayer().isOnlineMode());
-+    user.getPlayer().getConnection().flush();
++    user.getOriginalHandler().completeLoginProtocol(player, false);
++    connection.setState(StateRegistry.BotFilter);
++    packets.getSpawnPackets().write(connection, player.isOnlineMode());
++    connection.flush();
 +  }
 +
 +  public void disconnected(BotFilterSessionHandler botFilterConnection) {
