@@ -1,4 +1,4 @@
-From fa77892b95d87279f326df04454f7170e86d3f08 Mon Sep 17 00:00:00 2001
+From 07f8fc1d87437263842402468abf7df7d8b0b3e5 Mon Sep 17 00:00:00 2001
 From: Leymooo <vjatseslav.maspanov@gmail.com>
 Date: Sun, 4 Apr 2021 11:14:53 +0300
 Subject: [PATCH] [WIP] BotFilter
@@ -867,7 +867,7 @@ index 3dcb3807..d529ba9f 100644
 +  //BotFilter end
  }
 diff --git a/proxy/src/main/java/com/velocitypowered/proxy/connection/client/LoginSessionHandler.java b/proxy/src/main/java/com/velocitypowered/proxy/connection/client/LoginSessionHandler.java
-index c1967e85..4dabe3a5 100644
+index c1967e85..6d12ef71 100644
 --- a/proxy/src/main/java/com/velocitypowered/proxy/connection/client/LoginSessionHandler.java
 +++ b/proxy/src/main/java/com/velocitypowered/proxy/connection/client/LoginSessionHandler.java
 @@ -51,6 +51,7 @@ import com.velocitypowered.proxy.protocol.packet.ServerLogin;
@@ -960,7 +960,7 @@ index c1967e85..4dabe3a5 100644
 +  }
  
 +
-+  private void initialize(ConnectedPlayer player) {
++  public void initialize(ConnectedPlayer player) {
      mcConnection.setAssociation(player);
      mcConnection.setState(StateRegistry.PLAY);
 -
@@ -1161,48 +1161,12 @@ index 87bc5d09..4c52cf6b 100644
      return new PacketMapping(id, version, encodeOnly);
    }
  
-diff --git a/proxy/src/main/java/com/velocitypowered/proxy/protocol/netty/MinecraftCipherEncoder.java b/proxy/src/main/java/com/velocitypowered/proxy/protocol/netty/MinecraftCipherEncoder.java
-index b4fd027e..95467463 100644
---- a/proxy/src/main/java/com/velocitypowered/proxy/protocol/netty/MinecraftCipherEncoder.java
-+++ b/proxy/src/main/java/com/velocitypowered/proxy/protocol/netty/MinecraftCipherEncoder.java
-@@ -35,6 +35,7 @@ public class MinecraftCipherEncoder extends MessageToMessageEncoder<ByteBuf> {
- 
-   @Override
-   protected void encode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out) throws Exception {
-+    System.out.println("encrypting");
-     ByteBuf compatible = MoreByteBufUtils.ensureCompatible(ctx.alloc(), cipher, msg);
-     try {
-       cipher.process(compatible);
-diff --git a/proxy/src/main/java/com/velocitypowered/proxy/protocol/netty/MinecraftCompressEncoder.java b/proxy/src/main/java/com/velocitypowered/proxy/protocol/netty/MinecraftCompressEncoder.java
-index f6cb495c..49007eb9 100644
---- a/proxy/src/main/java/com/velocitypowered/proxy/protocol/netty/MinecraftCompressEncoder.java
-+++ b/proxy/src/main/java/com/velocitypowered/proxy/protocol/netty/MinecraftCompressEncoder.java
-@@ -36,6 +36,7 @@ public class MinecraftCompressEncoder extends MessageToByteEncoder<ByteBuf> {
- 
-   @Override
-   protected void encode(ChannelHandlerContext ctx, ByteBuf msg, ByteBuf out) throws Exception {
-+    System.out.println("compressing 2");
-     int uncompressed = msg.readableBytes();
-     if (uncompressed < threshold) {
-       // Under the threshold, there is nothing to do.
-diff --git a/proxy/src/main/java/com/velocitypowered/proxy/protocol/netty/MinecraftVarintLengthEncoder.java b/proxy/src/main/java/com/velocitypowered/proxy/protocol/netty/MinecraftVarintLengthEncoder.java
-index 867ea9b7..9559b63e 100644
---- a/proxy/src/main/java/com/velocitypowered/proxy/protocol/netty/MinecraftVarintLengthEncoder.java
-+++ b/proxy/src/main/java/com/velocitypowered/proxy/protocol/netty/MinecraftVarintLengthEncoder.java
-@@ -36,6 +36,7 @@ public class MinecraftVarintLengthEncoder extends MessageToByteEncoder<ByteBuf>
- 
-   @Override
-   protected void encode(ChannelHandlerContext ctx, ByteBuf msg, ByteBuf out) throws Exception {
-+    System.out.println("encoding");
-     ProtocolUtils.writeVarInt(out, msg.readableBytes());
-     out.writeBytes(msg);
-   }
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/BotFilter.java b/proxy/src/main/java/ru/leymooo/botfilter/BotFilter.java
 new file mode 100644
-index 00000000..36ac7ce6
+index 00000000..5d6d3aeb
 --- /dev/null
 +++ b/proxy/src/main/java/ru/leymooo/botfilter/BotFilter.java
-@@ -0,0 +1,90 @@
+@@ -0,0 +1,87 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -1228,15 +1192,14 @@ index 00000000..36ac7ce6
 +import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 +import com.velocitypowered.proxy.connection.client.LoginSessionHandler;
 +import com.velocitypowered.proxy.network.Connections;
-+import com.velocitypowered.proxy.protocol.StateRegistry;
 +import io.netty.channel.ChannelPipeline;
 +import lombok.Getter;
 +import lombok.ToString;
 +import org.apache.logging.log4j.LogManager;
 +import org.apache.logging.log4j.Logger;
 +import ru.leymooo.botfilter.config.BotFilterConfiguration;
-+import ru.leymooo.botfilter.protocol.netty.MultiplePreparedPacketsEncoder;
-+import ru.leymooo.botfilter.protocol.netty.PreparedPacketEncoder;
++import ru.leymooo.botfilter.protocol.cache.netty.MultiplePreparedPacketsEncoder;
++import ru.leymooo.botfilter.protocol.cache.netty.PreparedPacketEncoder;
 +import ru.leymooo.botfilter.server.BotFilterSessionHandler;
 +import ru.leymooo.botfilter.server.VirtualServer;
 +
@@ -1274,7 +1237,6 @@ index 00000000..36ac7ce6
 +
 +      ChannelPipeline pipeline = connection.getChannel().pipeline();
 +
-+      System.out.println(pipeline.toMap());
 +      if (sessionHandler.getPlayer().isOnlineMode()) {
 +        pipeline.addAfter(Connections.CIPHER_ENCODER, "prepared-encoder",
 +            PreparedPacketEncoder.getEncoder(connection.getProtocolVersion(), true));
@@ -1284,7 +1246,6 @@ index 00000000..36ac7ce6
 +        pipeline.addFirst("multipleprepared-encoder",
 +            MultiplePreparedPacketsEncoder.getEncoder(connection.getProtocolVersion()));
 +      }
-+      System.out.println(pipeline.toMap());
 +
 +      virtualServer.spawnPlayer(sessionHandler);
 +    } catch (Throwable t) {
@@ -1347,7 +1308,7 @@ index 00000000..ed81f310
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/BotFilterProtocol.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/BotFilterProtocol.java
 new file mode 100644
-index 00000000..865d695d
+index 00000000..ff56dac2
 --- /dev/null
 +++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/BotFilterProtocol.java
 @@ -0,0 +1,73 @@
@@ -1384,7 +1345,7 @@ index 00000000..865d695d
 +import com.velocitypowered.proxy.protocol.StateRegistry;
 +import ru.leymooo.botfilter.protocol.packet.JoinGame;
 +import ru.leymooo.botfilter.protocol.packet.PlayerPositionAndLook;
-+import ru.leymooo.botfilter.protocol.packet.world.EmptyChunk;
++import ru.leymooo.botfilter.protocol.packet.world.ChunkData;
 +
 +public class BotFilterProtocol {
 +
@@ -1411,8 +1372,8 @@ index 00000000..865d695d
 +        map(0x34, ProtocolVersion.MINECRAFT_1_16_2, true));
 +
 +    StateRegistry.BotFilter.clientbound.register(
-+        EmptyChunk.class, EmptyChunk::new,
-+        map(0x26, ProtocolVersion.MINECRAFT_1_7_2, true),
++        ChunkData.class, ChunkData::new,
++        map(0x21, ProtocolVersion.MINECRAFT_1_7_2, true),
 +        map(0x21, ProtocolVersion.MINECRAFT_1_8, true),
 +        map(0x20, ProtocolVersion.MINECRAFT_1_9, true),
 +        map(0x22, ProtocolVersion.MINECRAFT_1_13, true),
@@ -1424,12 +1385,12 @@ index 00000000..865d695d
 +  }
 +
 +}
-diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/netty/MultiplePreparedPacketsEncoder.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/netty/MultiplePreparedPacketsEncoder.java
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/cache/ByteBufCreator.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/cache/ByteBufCreator.java
 new file mode 100644
-index 00000000..bb6364bb
+index 00000000..ab71265c
 --- /dev/null
-+++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/netty/MultiplePreparedPacketsEncoder.java
-@@ -0,0 +1,68 @@
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/cache/ByteBufCreator.java
+@@ -0,0 +1,52 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -1448,22 +1409,472 @@ index 00000000..bb6364bb
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+package ru.leymooo.botfilter.protocol.netty;
++package ru.leymooo.botfilter.protocol.cache;
++
++import com.velocitypowered.natives.compression.VelocityCompressor;
++import com.velocitypowered.natives.util.BufferPreference;
++import com.velocitypowered.natives.util.Natives;
++import io.netty.buffer.ByteBuf;
++import io.netty.buffer.Unpooled;
++
++public class ByteBufCreator {
++
++  private static boolean directBuffers = false;
++
++  static {
++    VelocityCompressor compressor = Natives.compress.get().create(1);
++    if (compressor.preferredBufferType() == BufferPreference.DIRECT_PREFERRED
++        || compressor.preferredBufferType() == BufferPreference.DIRECT_REQUIRED) {
++      directBuffers = true;
++    }
++    compressor.close();
++  }
++
++
++  public static ByteBuf newBuffer() {
++    return directBuffers ? Unpooled.directBuffer() : Unpooled.buffer();
++  }
++
++  public static ByteBuf newBuffer(int length) {
++    return directBuffers ? Unpooled.directBuffer(length) : Unpooled.buffer(length);
++  }
++
++  public static boolean isDirectBufferPreferred() {
++    return directBuffers;
++  }
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/cache/MultiplePreparedPackets.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/cache/MultiplePreparedPackets.java
+new file mode 100644
+index 00000000..d7e49bbe
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/cache/MultiplePreparedPackets.java
+@@ -0,0 +1,99 @@
++/*
++ * Velocity-BotFilter
++ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package ru.leymooo.botfilter.protocol.cache;
++
++import com.google.common.base.Preconditions;
++import com.velocitypowered.api.network.ProtocolVersion;
++import com.velocitypowered.proxy.connection.MinecraftConnection;
++import io.netty.buffer.ByteBuf;
++import java.util.EnumMap;
++import java.util.EnumSet;
++import java.util.HashSet;
++import java.util.Map;
++
++public class MultiplePreparedPackets {
++
++  private Map<ProtocolVersion, ByteBuf> multiplePayloadBuf = new EnumMap<ProtocolVersion, ByteBuf>(
++      ProtocolVersion.class);
++  private PreparedPacket[] onlineModePackets;
++
++  public MultiplePreparedPackets(PreparedPacket... preparedPackets) {
++    for (PreparedPacket packet : preparedPackets) {
++      Preconditions.checkState(packet.isFinished(), "PreparedPacket is not adapted");
++    }
++    onlineModePackets = preparedPackets;
++    createOfflineModePayload(preparedPackets);
++  }
++
++  private void createOfflineModePayload(PreparedPacket... preparedPackets) {
++    for (ProtocolVersion protocolVersion : EnumSet
++        .range(ProtocolVersion.MINIMUM_VERSION, ProtocolVersion.MAXIMUM_VERSION)) {
++      ByteBuf multiple = ByteBufCreator.newBuffer();
++      for (PreparedPacket preparedPacket : preparedPackets) {
++        ByteBuf buf = preparedPacket.getBuffer(protocolVersion);
++        if (buf == null) {
++          continue;
++        }
++        multiple.writeBytes(buf);
++        buf.release();
++      }
++
++      if (multiple.readableBytes() == 0) {
++        multiple.release();
++        continue;
++      }
++      //Deduplicate
++      for (ByteBuf byteBuf : multiplePayloadBuf.values()) {
++        if (byteBuf.equals(multiple)) {
++          multiple.release();
++          multiple = byteBuf;
++          break;
++        }
++      }
++      multiplePayloadBuf.put(protocolVersion, multiple);
++    }
++  }
++
++  public void write(MinecraftConnection connection, boolean onlineMode) {
++    if (onlineMode) {
++      for (PreparedPacket preparedPacket : onlineModePackets) {
++        connection.delayedWrite(preparedPacket);
++      }
++    } else {
++      connection.delayedWrite(this);
++    }
++  }
++
++  public ByteBuf getBuffer(ProtocolVersion protocolVersion) {
++    return multiplePayloadBuf.get(protocolVersion).retainedSlice();
++  }
++
++  public int getBuffetLength(ProtocolVersion protocolVersion) {
++    return multiplePayloadBuf.get(protocolVersion).readableBytes();
++  }
++
++  public void release() {
++    for (PreparedPacket preparedPacket : onlineModePackets) {
++      preparedPacket.releaseBuffers();
++    }
++    for (ByteBuf byteBuf : new HashSet<>(multiplePayloadBuf.values())) {
++      byteBuf.release();
++    }
++  }
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/cache/PacketCompressor.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/cache/PacketCompressor.java
+new file mode 100644
+index 00000000..d1fd4e88
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/cache/PacketCompressor.java
+@@ -0,0 +1,69 @@
++/*
++ * Velocity-BotFilter
++ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package ru.leymooo.botfilter.protocol.cache;
++
++import com.velocitypowered.natives.compression.VelocityCompressor;
++import com.velocitypowered.natives.util.Natives;
++import com.velocitypowered.proxy.config.VelocityConfiguration;
++import com.velocitypowered.proxy.protocol.ProtocolUtils;
++import io.netty.buffer.ByteBuf;
++import io.netty.buffer.Unpooled;
++import java.util.function.Supplier;
++
++public class PacketCompressor {
++
++  private final ThreadLocal<VelocityCompressor> compressors = ThreadLocal
++      .withInitial(() -> Natives.compress.get().create(12));
++  private final Supplier<VelocityConfiguration> velocityConfiguration;
++
++  /**
++   * Constructs VelocityPacketCompressor.
++   *
++   * @param velocityConfiguration configuration
++   */
++  public PacketCompressor(Supplier<VelocityConfiguration> velocityConfiguration) {
++    this.velocityConfiguration = velocityConfiguration;
++
++  }
++
++  public boolean isCompressionEnabled() {
++    return velocityConfiguration.get().getCompressionThreshold() >= 0;
++  }
++
++  public boolean shouldCompress(int i) {
++    return isCompressionEnabled() && i >= velocityConfiguration.get().getCompressionThreshold();
++  }
++
++  public ByteBuf compress(ByteBuf source) {
++    VelocityCompressor compressor = compressors.get();
++    ByteBuf destination =
++        ByteBufCreator.isDirectBufferPreferred() ? Unpooled.directBuffer() : Unpooled.buffer();
++    int uncompressed = source.readableBytes();
++    ProtocolUtils.writeVarInt(destination, uncompressed);
++    try {
++      compressor.deflate(source, destination);
++    } catch (Exception e) {
++      throw new RuntimeException(e);
++    } finally {
++      source.release();
++    }
++    return destination;
++  }
++
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/cache/PreparedPacket.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/cache/PreparedPacket.java
+new file mode 100644
+index 00000000..a60575f2
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/cache/PreparedPacket.java
+@@ -0,0 +1,206 @@
++/*
++ * Velocity-BotFilter
++ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package ru.leymooo.botfilter.protocol.cache;
 +
 +import com.velocitypowered.api.network.ProtocolVersion;
++import com.velocitypowered.proxy.protocol.MinecraftPacket;
++import com.velocitypowered.proxy.protocol.ProtocolUtils;
++import com.velocitypowered.proxy.protocol.ProtocolUtils.Direction;
++import com.velocitypowered.proxy.protocol.StateRegistry;
 +import io.netty.buffer.ByteBuf;
++import io.netty.util.ReferenceCountUtil;
++import java.util.EnumMap;
++import java.util.EnumSet;
++import java.util.HashSet;
++import java.util.Map;
++import java.util.Map.Entry;
++import ru.leymooo.botfilter.protocol.BotFilterProtocol;
++
++
++public class PreparedPacket<T extends MinecraftPacket> {
++
++  static {
++    BotFilterProtocol.init();
++  }
++
++  private final Map<ProtocolVersion, ByteBufHolder> offlineMode =
++      new EnumMap<>(ProtocolVersion.class);
++  private boolean finished = false;
++
++  public PreparedPacket() {
++  }
++
++  public void prepareSinge(T packet, ProtocolVersion version) {
++    prepare(packet, version, version);
++  }
++
++  public void prepareSinge(T packet, ProtocolVersion version, StateRegistry protocol) {
++    prepare(packet, version, version, protocol);
++  }
++
++  public void prepare(T packet) {
++    prepare(packet, ProtocolVersion.MINIMUM_VERSION, ProtocolVersion.MAXIMUM_VERSION);
++  }
++
++  public void prepare(T packet, ProtocolVersion from) {
++    prepare(packet, from, ProtocolVersion.MAXIMUM_VERSION);
++  }
++
++  public void prepare(T packet, ProtocolVersion from, ProtocolVersion to) {
++    prepare(packet, from, to, StateRegistry.BotFilter);
++  }
++
++  public void prepare(T packet, ProtocolVersion from, ProtocolVersion to, StateRegistry protocol) {
++    for (ProtocolVersion protocolVersion : EnumSet.range(from, to)) {
++      ByteBuf buf = encodePacket(packet, protocolVersion, protocol);
++      ByteBufHolder holder = getHolder(buf, protocolVersion);
++      offlineMode.put(protocolVersion, holder);
++    }
++  }
++
++  /*
++  public void preparePacketAndCopy(T packet, ProtocolVersion start, ProtocolVersion end,
++      StateRegistry protocol) {
++    ByteBuf buf = encodePacket(packet, start, protocol);
++    ByteBufHolder holder = new ByteBufHolder(start.isBefore(ProtocolVersion.MINECRAFT_1_8), buf);
++    for (ProtocolVersion protocolVersion : EnumSet.range(start, end)) {
++      prepared.put(protocolVersion, holder);
++    }
++  }
++
++   */
++
++  private ByteBuf encodePacket(T packet, ProtocolVersion version, StateRegistry protocol) {
++    int id = getPacketId(packet, version, protocol);
++    ByteBuf byteBuf = ByteBufCreator.newBuffer();
++    ProtocolUtils.writeVarInt(byteBuf, id);
++    packet.encode(byteBuf, Direction.CLIENTBOUND, version);
++    return byteBuf;
++  }
++
++  private int getPacketId(T packet, ProtocolVersion version, StateRegistry protocol) {
++    try {
++      return protocol.clientbound.getProtocolRegistry(version).getPacketId(packet.getClass());
++    } catch (Exception e) {
++      return protocol.clientbound.getProtocolRegistry(version).getPacketId(
++          (Class<? extends MinecraftPacket>) packet.getClass().getSuperclass());
++    }
++  }
++
++  public ByteBuf getBuffer(ProtocolVersion version) {
++    ByteBufHolder holder =  offlineMode.get(version);
++    return holder == null ? null : holder.byteBuf.retainedSlice();
++  }
++
++
++  public int getBufferLength(ProtocolVersion version) {
++    ByteBufHolder holder =  offlineMode.get(version);
++    return holder == null ? 0 : holder.byteBuf.readableBytes();
++  }
++
++  public boolean isFinished() {
++    return finished;
++  }
++
++
++  private ByteBufHolder getHolder(ByteBuf buf, ProtocolVersion version) {
++    if (version.isBefore(ProtocolVersion.MINECRAFT_1_8)) {
++      ByteBufHolder holder = offlineMode.get(ProtocolVersion.MINECRAFT_1_7_2);
++      if (holder != null && holder.byteBuf.equals(buf)) {
++        buf.release();
++        return holder;
++      }
++      return new ByteBufHolder(true, buf);
++    }
++
++    for (ByteBufHolder holder : new HashSet<>(offlineMode.values())) {
++      if (!holder.mc1_7 && holder.byteBuf.equals(buf)) {
++        buf.release();
++        return holder;
++      }
++    }
++    return new ByteBufHolder(false, buf);
++  }
++
++
++  public void processCompress(PacketCompressor packetCompressor) {
++    if (finished) {
++      throw new IllegalStateException("Packet compression does not allowed after adapt");
++    }
++    for (Entry<ProtocolVersion, ByteBufHolder> prepared : offlineMode.entrySet()) {
++      ByteBufHolder holder = prepared.getValue();
++      if (holder.mc1_7 || holder.compressed) {
++        continue;
++      }
++      ByteBuf current = holder.byteBuf;
++      ByteBuf newBuf;
++      int bytes = current.readableBytes();
++      holder.compressed = true;
++      if (packetCompressor.shouldCompress(bytes)) {
++        newBuf = packetCompressor.compress(current);
++      } else {
++        newBuf = ByteBufCreator.newBuffer(2 + current.readableBytes());
++        ProtocolUtils.writeVarInt(newBuf, 0);
++        newBuf.writeBytes(current);
++      }
++      newBuf.capacity(newBuf.readableBytes());
++      holder.byteBuf = newBuf;
++    }
++  }
++
++  public void finish() {
++    for (Entry<ProtocolVersion, ByteBufHolder> prepared : offlineMode.entrySet()) {
++      ByteBufHolder holder = prepared.getValue();
++      if (holder.varint) {
++        continue;
++      }
++      ByteBuf current = holder.byteBuf;
++      ByteBuf buf = ByteBufCreator.newBuffer(5 + current.readableBytes());
++      ProtocolUtils.writeVarInt(buf, current.readableBytes());
++      buf.writeBytes(current);
++      buf.capacity(buf.readableBytes());
++      ReferenceCountUtil.safeRelease(current);
++      holder.byteBuf = buf;
++      holder.varint = true;
++    }
++    finished = true;
++  }
++
++  public void releaseBuffers() {
++    for (ByteBufHolder holder : new HashSet<>(offlineMode.values())) {
++      holder.byteBuf.release();
++    }
++  }
++
++  private static class ByteBufHolder {
++
++    private final boolean mc1_7;
++    private ByteBuf byteBuf;
++    private boolean compressed = false;
++    private boolean varint = false;
++
++    public ByteBufHolder(boolean mc1_7, ByteBuf byteBuf) {
++      this.mc1_7 = mc1_7;
++      this.byteBuf = byteBuf;
++      if (mc1_7) {
++        compressed = true;
++      }
++    }
++  }
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/cache/netty/MultiplePreparedPacketsEncoder.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/cache/netty/MultiplePreparedPacketsEncoder.java
+new file mode 100644
+index 00000000..c8e57358
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/cache/netty/MultiplePreparedPacketsEncoder.java
+@@ -0,0 +1,70 @@
++/*
++ * Velocity-BotFilter
++ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package ru.leymooo.botfilter.protocol.cache.netty;
++
++import com.velocitypowered.api.network.ProtocolVersion;
 +import io.netty.channel.ChannelHandler.Sharable;
 +import io.netty.channel.ChannelHandlerContext;
-+import io.netty.handler.codec.MessageToByteEncoder;
++import io.netty.handler.codec.MessageToMessageEncoder;
 +import java.util.EnumMap;
++import java.util.List;
 +import java.util.Map;
 +import lombok.RequiredArgsConstructor;
-+import ru.leymooo.botfilter.protocol.util.MultiplePreparedPackets;
-+import ru.leymooo.botfilter.protocol.util.ByteBufCreator;
++import ru.leymooo.botfilter.protocol.cache.MultiplePreparedPackets;
 +
 +@Sharable
 +@RequiredArgsConstructor
-+public class MultiplePreparedPacketsEncoder extends MessageToByteEncoder<MultiplePreparedPackets> {
++public class MultiplePreparedPacketsEncoder extends
++    MessageToMessageEncoder<MultiplePreparedPackets> {
 +
 +
 +  private static Map<ProtocolVersion, MultiplePreparedPacketsEncoder> encoders = new EnumMap<>(
@@ -1479,12 +1890,12 @@ index 00000000..bb6364bb
 +
 +
 +  @Override
-+  protected void encode(ChannelHandlerContext ctx, MultiplePreparedPackets msg, ByteBuf out)
++  protected void encode(ChannelHandlerContext ctx, MultiplePreparedPackets msg, List<Object> out)
 +      throws Exception {
-+    System.out.println("encoding multiple prepared");
-+    out.writeBytes(msg.getBuffer(protocolVersion));
++    out.add(msg.getBuffer(protocolVersion));
 +  }
 +
++  /*
 +  @Override
 +  protected ByteBuf allocateBuffer(ChannelHandlerContext ctx, MultiplePreparedPackets msg,
 +      boolean preferDirect) throws Exception {
@@ -1493,17 +1904,19 @@ index 00000000..bb6364bb
 +        : ctx.alloc().heapBuffer(length);
 +  }
 +
++   */
++
 +
 +  public static MultiplePreparedPacketsEncoder getEncoder(ProtocolVersion version) {
 +    return encoders.get(version);
 +  }
 +}
-diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/netty/PreparedPacketEncoder.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/netty/PreparedPacketEncoder.java
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/cache/netty/PreparedPacketEncoder.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/cache/netty/PreparedPacketEncoder.java
 new file mode 100644
-index 00000000..3fd1ce8e
+index 00000000..1c0489e9
 --- /dev/null
-+++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/netty/PreparedPacketEncoder.java
-@@ -0,0 +1,73 @@
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/cache/netty/PreparedPacketEncoder.java
+@@ -0,0 +1,77 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -1522,7 +1935,7 @@ index 00000000..3fd1ce8e
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+package ru.leymooo.botfilter.protocol.netty;
++package ru.leymooo.botfilter.protocol.cache.netty;
 +
 +import com.google.common.collect.HashBasedTable;
 +import com.google.common.collect.Table;
@@ -1533,13 +1946,15 @@ index 00000000..3fd1ce8e
 +import io.netty.channel.ChannelHandler.Sharable;
 +import io.netty.channel.ChannelHandlerContext;
 +import io.netty.handler.codec.MessageToByteEncoder;
++import io.netty.handler.codec.MessageToMessageEncoder;
++import java.util.List;
 +import lombok.RequiredArgsConstructor;
-+import ru.leymooo.botfilter.protocol.util.ByteBufCreator;
-+import ru.leymooo.botfilter.protocol.util.PreparedPacket;
++import ru.leymooo.botfilter.protocol.cache.ByteBufCreator;
++import ru.leymooo.botfilter.protocol.cache.PreparedPacket;
 +
 +@Sharable
 +@RequiredArgsConstructor
-+public class PreparedPacketEncoder extends MessageToByteEncoder<PreparedPacket> {
++public class PreparedPacketEncoder extends MessageToMessageEncoder<PreparedPacket> {
 +
 +
 +  private static final boolean IS_JAVA_CIPHER = Natives.cipher.get() == JavaVelocityCipher.FACTORY;
@@ -1558,11 +1973,11 @@ index 00000000..3fd1ce8e
 +
 +
 +  @Override
-+  protected void encode(ChannelHandlerContext ctx, PreparedPacket msg, ByteBuf out)
-+      throws Exception {
-+    System.out.println("encoding prepared");
-+    out.writeBytes(msg.getBuffer(protocolVersion));
++  protected void encode(ChannelHandlerContext ctx, PreparedPacket msg, List<Object> list) throws Exception {
++    list.add(msg.getBuffer(protocolVersion));
 +  }
++
++  /*
 +
 +  @Override
 +  protected ByteBuf allocateBuffer(ChannelHandlerContext ctx, PreparedPacket msg,
@@ -1571,6 +1986,8 @@ index 00000000..3fd1ce8e
 +    boolean direct = onlineMode ? IS_JAVA_CIPHER : ByteBufCreator.isDirectBufferPreferred();
 +    return direct ? ctx.alloc().directBuffer(length) : ctx.alloc().heapBuffer(length);
 +  }
++
++   */
 +
 +
 +  public static PreparedPacketEncoder getEncoder(ProtocolVersion version, boolean onlineMode) {
@@ -1788,11 +2205,170 @@ index 00000000..658cd5da
 +    return handler.handle(this);
 +  }
 +}
-diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/EmptyChunk.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/EmptyChunk.java
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/Chunk1_7.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/Chunk1_7.java
 new file mode 100644
-index 00000000..b14d2501
+index 00000000..d83f334f
 --- /dev/null
-+++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/EmptyChunk.java
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/Chunk1_7.java
+@@ -0,0 +1,153 @@
++/*
++ * Velocity-BotFilter
++ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package ru.leymooo.botfilter.protocol.packet.world;
++
++import com.velocitypowered.api.network.ProtocolVersion;
++import com.velocitypowered.proxy.protocol.ProtocolUtils.Direction;
++import io.netty.buffer.ByteBuf;
++import io.netty.buffer.Unpooled;
++import java.util.ArrayList;
++import java.util.Arrays;
++import java.util.List;
++import java.util.zip.Deflater;
++import lombok.Getter;
++import ru.leymooo.botfilter.protocol.registry.Biome;
++import ru.leymooo.botfilter.protocol.util.ByteArray3d;
++import ru.leymooo.botfilter.protocol.util.NibbleArray3d;
++import ru.leymooo.botfilter.server.world.SimpleBlock;
++import ru.leymooo.botfilter.server.world.SimpleBlock.Version;
++import ru.leymooo.botfilter.server.world.SimpleChunk;
++import ru.leymooo.botfilter.server.world.SimpleChunk.ChunkSection;
++
++/**
++ * 1.7
++ */
++//TODO: Normal fields instead of byte array
++public class Chunk1_7 extends ChunkData {
++
++
++  private final byte[] chunkArray = new byte[]{0, 1, 0, 0, 0, 12, 0, 120, -100, 99, 96, 24, -39, 0,
++      0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
++
++  private final SimpleChunk simpleChunk;
++
++  public Chunk1_7(SimpleChunk simpleChunk) {
++    super(simpleChunk.getX(), simpleChunk.getZ());
++    this.simpleChunk = simpleChunk;
++  }
++
++  @Override
++  public void encode(ByteBuf buf, Direction direction, ProtocolVersion protocolVersion) {
++    buf.writeInt(getX());
++    buf.writeInt(getZ());
++    buf.writeBoolean(true); //Full chunk
++    ChunkSection[] sections = simpleChunk.getSections();
++    List<NetworkSection> nSections = new ArrayList<>(16);
++
++    int bitMask = 0;
++    int dataLength = 256; //Biomes
++    boolean skyLight = simpleChunk.getInstance().getDimension().isHasSkylight();
++
++    for (int s = 0; s < sections.length; s++) {
++      ChunkSection section = sections[s];
++      if (section != null && section.getBlocksCount() > 0) {
++        bitMask |= 1 << s;
++        NetworkSection networkSection = new NetworkSection(section, skyLight);
++        dataLength += networkSection.getBlocks().getData().length;
++        dataLength += networkSection.getMetadata().getData().length;
++        dataLength += networkSection.getBlockLight().getData().length;
++        if (skyLight) {
++          dataLength += networkSection.getSkyLight().getData().length;
++        }
++        nSections.add(networkSection);
++      }
++    }
++    ByteBuf data = Unpooled.buffer(dataLength);
++
++    nSections.forEach(n -> data.writeBytes(n.getBlocks().getData()));
++    nSections.forEach(n -> data.writeBytes(n.getMetadata().getData()));
++    nSections.forEach(n -> data.writeBytes(n.getBlockLight().getData()));
++    if (skyLight) {
++      nSections.forEach(n -> data.writeBytes(n.getSkyLight().getData()));
++    }
++    byte[] biomes = new byte[256];
++    Arrays.fill(biomes, (byte) Biome.PLAINTS.id);
++    for (int s = 0; s < sections.length; s++) {
++      ChunkSection section = sections[s];
++      if (section != null) {
++        Arrays.fill(biomes, s * 16, (s * 16) + 16, (byte) section.getBiome().id);
++      }
++    }
++    data.writeBytes(biomes);
++
++    buf.writeShort(bitMask);
++    buf.writeShort(0); //Extended bitmask
++
++    byte[] uncompressed = new byte[data.readableBytes()];
++    data.readBytes(uncompressed);
++
++    ByteBuf compressed = Unpooled.buffer();
++
++    Deflater deflater = new Deflater(9);
++    deflater.setInput(uncompressed);
++    deflater.finish();
++    byte[] buffer = new byte[1024];
++    while (!deflater.finished()) {
++      int count = deflater.deflate(buffer); // returns the generated code... index
++      compressed.writeBytes(buffer, 0, count);
++    }
++    deflater.end();
++    buf.writeInt(compressed.readableBytes()); // compressed size
++    buf.writeBytes(compressed);
++
++    compressed.release();
++    data.release();
++
++  }
++
++  @Getter
++  private static class NetworkSection {
++
++    private final ByteArray3d blocks = new ByteArray3d(16 * 16 * 16);
++    private final NibbleArray3d metadata = new NibbleArray3d(16 * 16 * 16);
++    private final NibbleArray3d blockLight = new NibbleArray3d(16 * 16 * 16); //TODO Lighting
++    private final NibbleArray3d skyLight; //TODO Lighting
++
++    public NetworkSection(ChunkSection chunkSection, boolean hasSkyLight) {
++      for (int x = 0; x < 16; x++) {
++        for (int y = 0; y < 16; y++) {
++          for (int z = 0; z < 16; z++) {
++            SimpleBlock block = chunkSection.getBlockAt(x, y, z);
++            if (block == SimpleBlock.AIR) {
++              continue;
++            }
++            blocks.set(x, y, z, block.getId(Version.MINECRAFT_1_7));
++            metadata.set(x, y, z, block.getData(Version.MINECRAFT_1_7));
++            blockLight.set(x, y, z, 0);
++          }
++        }
++      }
++      skyLight = hasSkyLight ? new NibbleArray3d(16 * 16 * 16) : null;
++      if (hasSkyLight) {
++        skyLight.fill(15);
++      }
++    }
++  }
++
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/ChunkData.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/ChunkData.java
+new file mode 100644
+index 00000000..7e51bd36
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/ChunkData.java
 @@ -0,0 +1,62 @@
 +/*
 + * Velocity-BotFilter
@@ -1820,17 +2396,17 @@ index 00000000..b14d2501
 +import com.velocitypowered.proxy.protocol.ProtocolUtils.Direction;
 +import io.netty.buffer.ByteBuf;
 +
-+public class EmptyChunk implements MinecraftPacket {
++public class ChunkData implements MinecraftPacket {
 +
 +  private int x;
 +  private int z;
 +
-+  public EmptyChunk(int x, int z) {
++  public ChunkData(int x, int z) {
 +    this.x = x;
 +    this.z = z;
 +  }
 +
-+  public EmptyChunk() {
++  public ChunkData() {
 +  }
 +
 +  @Override
@@ -1858,7 +2434,7 @@ index 00000000..b14d2501
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/EmptyChunk113.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/EmptyChunk113.java
 new file mode 100644
-index 00000000..7bf6ff78
+index 00000000..56504f2e
 --- /dev/null
 +++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/EmptyChunk113.java
 @@ -0,0 +1,97 @@
@@ -1892,7 +2468,7 @@ index 00000000..7bf6ff78
 +/**
 + * 1.13 - 1.16.4
 + */
-+public class EmptyChunk113 extends EmptyChunk {
++public class EmptyChunk113 extends ChunkData {
 +
 +
 +  public EmptyChunk113(int x, int z) {
@@ -1959,60 +2535,9 @@ index 00000000..7bf6ff78
 +  }
 +
 +}
-diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/EmptyChunk17.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/EmptyChunk17.java
-new file mode 100644
-index 00000000..dfa833e7
---- /dev/null
-+++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/EmptyChunk17.java
-@@ -0,0 +1,45 @@
-+/*
-+ * Velocity-BotFilter
-+ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU Affero General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU Affero General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU Affero General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+package ru.leymooo.botfilter.protocol.packet.world;
-+
-+import com.velocitypowered.api.network.ProtocolVersion;
-+import com.velocitypowered.proxy.protocol.ProtocolUtils.Direction;
-+import io.netty.buffer.ByteBuf;
-+
-+/**
-+ * 1.7
-+ */
-+//TODO: Normal fields instead of byte array
-+public class EmptyChunk17 extends EmptyChunk {
-+
-+
-+  //No comments
-+  private final byte[] chunkArray = new byte[]{0, 1, 0, 0, 0, 12, 0, 120, -100, 99, 96, 24, -39, 0,
-+      0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-+
-+  public EmptyChunk17(int x, int z) {
-+    super(x, z);
-+  }
-+
-+  @Override
-+  public void encode(ByteBuf buf, Direction direction, ProtocolVersion protocolVersion) {
-+    buf.writeBytes(chunkArray);
-+  }
-+
-+}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/EmptyChunk18.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/EmptyChunk18.java
 new file mode 100644
-index 00000000..f555d05a
+index 00000000..806c79e0
 --- /dev/null
 +++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/EmptyChunk18.java
 @@ -0,0 +1,54 @@
@@ -2044,7 +2569,7 @@ index 00000000..f555d05a
 +/**
 + * 1.8 - 1.12.2
 + */
-+public class EmptyChunk18 extends EmptyChunk {
++public class EmptyChunk18 extends ChunkData {
 +
 +
 +  public EmptyChunk18(int x, int z) {
@@ -2543,12 +3068,12 @@ index 00000000..66a72191
 +        .put("value", biomesBuilder.build()).build();
 +  }
 +}
-diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/ByteBufCreator.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/ByteBufCreator.java
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/ByteArray3d.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/ByteArray3d.java
 new file mode 100644
-index 00000000..433bb073
+index 00000000..48a78935
 --- /dev/null
-+++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/ByteBufCreator.java
-@@ -0,0 +1,52 @@
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/ByteArray3d.java
+@@ -0,0 +1,53 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -2569,148 +3094,44 @@ index 00000000..433bb073
 +
 +package ru.leymooo.botfilter.protocol.util;
 +
-+import com.velocitypowered.natives.compression.VelocityCompressor;
-+import com.velocitypowered.natives.util.BufferPreference;
-+import com.velocitypowered.natives.util.Natives;
-+import io.netty.buffer.ByteBuf;
-+import io.netty.buffer.Unpooled;
++import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
++import java.util.Arrays;
 +
-+public class ByteBufCreator {
++@SuppressFBWarnings({"EI_EXPOSE_REP2", "EI_EXPOSE_REP"})
++public class ByteArray3d {
 +
-+  private static boolean directBuffers = false;
++  private byte[] data;
 +
-+  static {
-+    VelocityCompressor compressor = Natives.compress.get().create(1);
-+    if (compressor.preferredBufferType() == BufferPreference.DIRECT_PREFERRED
-+        || compressor.preferredBufferType() == BufferPreference.DIRECT_REQUIRED) {
-+      directBuffers = true;
-+    }
-+    compressor.close();
++  public ByteArray3d(int size) {
++    this.data = new byte[size];
 +  }
 +
-+
-+  public static ByteBuf newBuffer() {
-+    return directBuffers ? Unpooled.directBuffer() : Unpooled.buffer();
++  public ByteArray3d(byte[] array) {
++    this.data = array;
 +  }
 +
-+  public static ByteBuf newBuffer(int length) {
-+    return directBuffers ? Unpooled.directBuffer(length) : Unpooled.buffer(length);
++  public byte[] getData() {
++    return this.data;
 +  }
 +
-+  public static boolean isDirectBufferPreferred() {
-+    return directBuffers;
++  public int get(int x, int y, int z) {
++    return this.data[y << 8 | z << 4 | x] & 0xFF;
 +  }
++
++  public void set(int x, int y, int z, int val) {
++    this.data[y << 8 | z << 4 | x] = (byte) val;
++  }
++
++  public void fill(int val) {
++    Arrays.fill(this.data, (byte) val);
++  }
++
 +}
-diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/MultiplePreparedPackets.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/MultiplePreparedPackets.java
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/NibbleArray3d.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/NibbleArray3d.java
 new file mode 100644
-index 00000000..70000654
+index 00000000..731d0d00
 --- /dev/null
-+++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/MultiplePreparedPackets.java
-@@ -0,0 +1,99 @@
-+/*
-+ * Velocity-BotFilter
-+ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU Affero General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU Affero General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU Affero General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+package ru.leymooo.botfilter.protocol.util;
-+
-+import com.google.common.base.Preconditions;
-+import com.velocitypowered.api.network.ProtocolVersion;
-+import com.velocitypowered.proxy.connection.MinecraftConnection;
-+import io.netty.buffer.ByteBuf;
-+import java.util.EnumMap;
-+import java.util.EnumSet;
-+import java.util.HashSet;
-+import java.util.Map;
-+
-+public class MultiplePreparedPackets {
-+
-+  private Map<ProtocolVersion, ByteBuf> multiplePayloadBuf = new EnumMap<ProtocolVersion, ByteBuf>(
-+      ProtocolVersion.class);
-+  private PreparedPacket[] onlineModePackets;
-+
-+  public MultiplePreparedPackets(PreparedPacket... preparedPackets) {
-+    for (PreparedPacket packet : preparedPackets) {
-+      Preconditions.checkState(packet.isFinished(), "PreparedPacket is not adapted");
-+    }
-+    onlineModePackets = preparedPackets;
-+    createOfflineModePayload(preparedPackets);
-+  }
-+
-+  private void createOfflineModePayload(PreparedPacket... preparedPackets) {
-+    for (ProtocolVersion protocolVersion : EnumSet
-+        .range(ProtocolVersion.MINIMUM_VERSION, ProtocolVersion.MAXIMUM_VERSION)) {
-+      ByteBuf multiple = ByteBufCreator.newBuffer();
-+      for (PreparedPacket preparedPacket : preparedPackets) {
-+        ByteBuf buf = preparedPacket.getBuffer(protocolVersion);
-+        if (buf == null) {
-+          continue;
-+        }
-+        multiple.writeBytes(buf);
-+        buf.release();
-+      }
-+
-+      if (multiple.readableBytes() == 0) {
-+        multiple.release();
-+        continue;
-+      }
-+      //Deduplicate
-+      for (ByteBuf byteBuf : multiplePayloadBuf.values()) {
-+        if (byteBuf.equals(multiple)) {
-+          multiple.release();
-+          multiple = byteBuf;
-+          break;
-+        }
-+      }
-+      multiplePayloadBuf.put(protocolVersion, multiple);
-+    }
-+  }
-+
-+  public void write(MinecraftConnection connection, boolean onlineMode) {
-+    if (onlineMode) {
-+      for (PreparedPacket preparedPacket : onlineModePackets) {
-+        connection.delayedWrite(preparedPacket);
-+      }
-+    } else {
-+      connection.delayedWrite(this);
-+    }
-+  }
-+
-+  public ByteBuf getBuffer(ProtocolVersion protocolVersion) {
-+    return multiplePayloadBuf.get(protocolVersion).retainedSlice();
-+  }
-+
-+  public int getBuffetLength(ProtocolVersion protocolVersion) {
-+    return multiplePayloadBuf.get(protocolVersion).readableBytes();
-+  }
-+
-+  public void release() {
-+    for (PreparedPacket preparedPacket : onlineModePackets) {
-+      preparedPacket.releaseBuffers();
-+    }
-+    for (ByteBuf byteBuf : new HashSet<>(multiplePayloadBuf.values())) {
-+      byteBuf.release();
-+    }
-+  }
-+}
-diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/PacketCompressor.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/PacketCompressor.java
-new file mode 100644
-index 00000000..f9cd2100
---- /dev/null
-+++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/PacketCompressor.java
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/NibbleArray3d.java
 @@ -0,0 +1,70 @@
 +/*
 + * Velocity-BotFilter
@@ -2732,274 +3153,62 @@ index 00000000..f9cd2100
 +
 +package ru.leymooo.botfilter.protocol.util;
 +
-+import com.velocitypowered.natives.compression.VelocityCompressor;
-+import com.velocitypowered.natives.util.Natives;
-+import com.velocitypowered.proxy.config.VelocityConfiguration;
-+import com.velocitypowered.proxy.protocol.ProtocolUtils;
-+import io.netty.buffer.ByteBuf;
-+import io.netty.buffer.Unpooled;
-+import java.util.function.Supplier;
++import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 +
-+public class PacketCompressor {
++@SuppressFBWarnings({"EI_EXPOSE_REP2", "EI_EXPOSE_REP"})
++public class NibbleArray3d {
 +
-+  private final ThreadLocal<VelocityCompressor> compressors = ThreadLocal
-+      .withInitial(() -> Natives.compress.get().create(12));
-+  private final Supplier<VelocityConfiguration> velocityConfiguration;
++  private byte[] data;
 +
-+  /**
-+   * Constructs VelocityPacketCompressor.
-+   *
-+   * @param velocityConfiguration configuration
-+   */
-+  public PacketCompressor(Supplier<VelocityConfiguration> velocityConfiguration) {
-+    this.velocityConfiguration = velocityConfiguration;
-+
++  public NibbleArray3d(int size) {
++    this.data = new byte[size >> 1];
 +  }
 +
-+  public boolean isCompressionEnabled() {
-+    return velocityConfiguration.get().getCompressionThreshold() >= 0;
++  public NibbleArray3d(byte[] array) {
++    this.data = array;
 +  }
 +
-+  public boolean shouldCompress(int i) {
-+    return isCompressionEnabled() && i >= velocityConfiguration.get().getCompressionThreshold();
++  public byte[] getData() {
++    return this.data;
 +  }
 +
-+  public ByteBuf compress(ByteBuf source) {
-+    System.out.println("compressing");
-+    VelocityCompressor compressor = compressors.get();
-+    ByteBuf destination =
-+        ByteBufCreator.isDirectBufferPreferred() ? Unpooled.directBuffer() : Unpooled.buffer();
-+    int uncompressed = source.readableBytes();
-+    ProtocolUtils.writeVarInt(destination, uncompressed);
-+    try {
-+      compressor.deflate(source, destination);
-+    } catch (Exception e) {
-+      throw new RuntimeException(e);
-+    } finally {
-+      source.release();
-+    }
-+    return destination;
++  public int get(int x, int y, int z) {
++    int key = y << 8 | z << 4 | x;
++    int index = key >> 1;
++    int part = key & 1;
++    return part == 0 ? this.data[index] & 15 : this.data[index] >> 4 & 15;
 +  }
 +
-+}
-diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/PreparedPacket.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/PreparedPacket.java
-new file mode 100644
-index 00000000..6d0d0829
---- /dev/null
-+++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/PreparedPacket.java
-@@ -0,0 +1,206 @@
-+/*
-+ * Velocity-BotFilter
-+ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU Affero General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU Affero General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU Affero General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+package ru.leymooo.botfilter.protocol.util;
-+
-+import com.velocitypowered.api.network.ProtocolVersion;
-+import com.velocitypowered.proxy.protocol.MinecraftPacket;
-+import com.velocitypowered.proxy.protocol.ProtocolUtils;
-+import com.velocitypowered.proxy.protocol.ProtocolUtils.Direction;
-+import com.velocitypowered.proxy.protocol.StateRegistry;
-+import io.netty.buffer.ByteBuf;
-+import io.netty.util.ReferenceCountUtil;
-+import java.util.EnumMap;
-+import java.util.EnumSet;
-+import java.util.HashSet;
-+import java.util.Map;
-+import java.util.Map.Entry;
-+import ru.leymooo.botfilter.protocol.BotFilterProtocol;
-+
-+
-+public class PreparedPacket<T extends MinecraftPacket> {
-+
-+  static {
-+    BotFilterProtocol.init();
-+  }
-+
-+  private final Map<ProtocolVersion, ByteBufHolder> offlineMode =
-+      new EnumMap<>(ProtocolVersion.class);
-+  private boolean finished = false;
-+
-+  public PreparedPacket() {
-+  }
-+
-+  public void prepareSinge(T packet, ProtocolVersion version) {
-+    prepare(packet, version, version);
-+  }
-+
-+  public void prepareSinge(T packet, ProtocolVersion version, StateRegistry protocol) {
-+    prepare(packet, version, version, protocol);
-+  }
-+
-+  public void prepare(T packet) {
-+    prepare(packet, ProtocolVersion.MINIMUM_VERSION, ProtocolVersion.MAXIMUM_VERSION);
-+  }
-+
-+  public void prepare(T packet, ProtocolVersion from) {
-+    prepare(packet, from, ProtocolVersion.MAXIMUM_VERSION);
-+  }
-+
-+  public void prepare(T packet, ProtocolVersion from, ProtocolVersion to) {
-+    prepare(packet, from, to, StateRegistry.BotFilter);
-+  }
-+
-+  public void prepare(T packet, ProtocolVersion from, ProtocolVersion to, StateRegistry protocol) {
-+    for (ProtocolVersion protocolVersion : EnumSet.range(from, to)) {
-+      ByteBuf buf = encodePacket(packet, protocolVersion, protocol);
-+      ByteBufHolder holder = getHolder(buf, protocolVersion);
-+      offlineMode.put(protocolVersion, holder);
++  public void set(int x, int y, int z, int val) {
++    int key = y << 8 | z << 4 | x;
++    int index = key >> 1;
++    int part = key & 1;
++    if (part == 0) {
++      this.data[index] = (byte) (this.data[index] & 240 | val & 15);
++    } else {
++      this.data[index] = (byte) (this.data[index] & 15 | (val & 15) << 4);
 +    }
 +  }
 +
-+  /*
-+  public void preparePacketAndCopy(T packet, ProtocolVersion start, ProtocolVersion end,
-+      StateRegistry protocol) {
-+    ByteBuf buf = encodePacket(packet, start, protocol);
-+    ByteBufHolder holder = new ByteBufHolder(start.isBefore(ProtocolVersion.MINECRAFT_1_8), buf);
-+    for (ProtocolVersion protocolVersion : EnumSet.range(start, end)) {
-+      prepared.put(protocolVersion, holder);
-+    }
-+  }
-+
-+   */
-+
-+  private ByteBuf encodePacket(T packet, ProtocolVersion version, StateRegistry protocol) {
-+    int id = getPacketId(packet, version, protocol);
-+    ByteBuf byteBuf = ByteBufCreator.newBuffer();
-+    ProtocolUtils.writeVarInt(byteBuf, id);
-+    packet.encode(byteBuf, Direction.CLIENTBOUND, version);
-+    return byteBuf;
-+  }
-+
-+  private int getPacketId(T packet, ProtocolVersion version, StateRegistry protocol) {
-+    try {
-+      return protocol.clientbound.getProtocolRegistry(version).getPacketId(packet.getClass());
-+    } catch (Exception e) {
-+      return protocol.clientbound.getProtocolRegistry(version).getPacketId(
-+          (Class<? extends MinecraftPacket>) packet.getClass().getSuperclass());
-+    }
-+  }
-+
-+  public ByteBuf getBuffer(ProtocolVersion version) {
-+    ByteBufHolder holder =  offlineMode.get(version);
-+    return holder == null ? null : holder.byteBuf.retainedSlice();
-+  }
-+
-+
-+  public int getBufferLength(ProtocolVersion version) {
-+    ByteBufHolder holder =  offlineMode.get(version);
-+    return holder == null ? 0 : holder.byteBuf.readableBytes();
-+  }
-+
-+  public boolean isFinished() {
-+    return finished;
-+  }
-+
-+
-+  private ByteBufHolder getHolder(ByteBuf buf, ProtocolVersion version) {
-+    if (version.isBefore(ProtocolVersion.MINECRAFT_1_8)) {
-+      ByteBufHolder holder = offlineMode.get(ProtocolVersion.MINECRAFT_1_7_2);
-+      if (holder != null && holder.byteBuf.equals(buf)) {
-+        buf.release();
-+        return holder;
-+      }
-+      return new ByteBufHolder(true, buf);
-+    }
-+
-+    for (ByteBufHolder holder : new HashSet<>(offlineMode.values())) {
-+      if (!holder.mc1_7 && holder.byteBuf.equals(buf)) {
-+        buf.release();
-+        return holder;
-+      }
-+    }
-+    return new ByteBufHolder(false, buf);
-+  }
-+
-+
-+  public void processCompress(PacketCompressor packetCompressor) {
-+    if (finished) {
-+      throw new IllegalStateException("Packet compression does not allowed after adapt");
-+    }
-+    for (Entry<ProtocolVersion, ByteBufHolder> prepared : offlineMode.entrySet()) {
-+      ByteBufHolder holder = prepared.getValue();
-+      if (holder.mc1_7 || holder.compressed) {
-+        continue;
-+      }
-+      ByteBuf current = holder.byteBuf;
-+      ByteBuf newBuf;
-+      int bytes = current.readableBytes();
-+      holder.compressed = true;
-+      if (packetCompressor.shouldCompress(bytes)) {
-+        newBuf = packetCompressor.compress(current);
++  public void fill(int val) {
++    for (int index = 0; index < this.data.length << 1; index++) {
++      int ind = index >> 1;
++      int part = index & 1;
++      if (part == 0) {
++        this.data[ind] = (byte) (this.data[ind] & 240 | val & 15);
 +      } else {
-+        newBuf = ByteBufCreator.newBuffer(2 + current.readableBytes());
-+        ProtocolUtils.writeVarInt(newBuf, 0);
-+        newBuf.writeBytes(current);
-+      }
-+      newBuf.capacity(newBuf.readableBytes());
-+      holder.byteBuf = newBuf;
-+    }
-+  }
-+
-+  public void finish() {
-+    for (Entry<ProtocolVersion, ByteBufHolder> prepared : offlineMode.entrySet()) {
-+      ByteBufHolder holder = prepared.getValue();
-+      if (holder.varint) {
-+        continue;
-+      }
-+      ByteBuf current = holder.byteBuf;
-+      ByteBuf buf = ByteBufCreator.newBuffer(5 + current.readableBytes());
-+      ProtocolUtils.writeVarInt(buf, current.readableBytes());
-+      buf.writeBytes(current);
-+      buf.capacity(buf.readableBytes());
-+      ReferenceCountUtil.safeRelease(current);
-+      holder.byteBuf = buf;
-+      holder.varint = true;
-+    }
-+    finished = true;
-+  }
-+
-+  public void releaseBuffers() {
-+    for (ByteBufHolder holder : new HashSet<>(offlineMode.values())) {
-+      holder.byteBuf.release();
-+    }
-+  }
-+
-+  private static class ByteBufHolder {
-+
-+    private final boolean mc1_7;
-+    private ByteBuf byteBuf;
-+    private boolean compressed = false;
-+    private boolean varint = false;
-+
-+    public ByteBufHolder(boolean mc1_7, ByteBuf byteBuf) {
-+      this.mc1_7 = mc1_7;
-+      this.byteBuf = byteBuf;
-+      if (mc1_7) {
-+        compressed = true;
++        this.data[ind] = (byte) (this.data[ind] & 15 | (val & 15) << 4);
 +      }
 +    }
 +  }
++
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/server/BotFilterSessionHandler.java b/proxy/src/main/java/ru/leymooo/botfilter/server/BotFilterSessionHandler.java
 new file mode 100644
-index 00000000..6a7455d6
+index 00000000..ed366429
 --- /dev/null
 +++ b/proxy/src/main/java/ru/leymooo/botfilter/server/BotFilterSessionHandler.java
-@@ -0,0 +1,63 @@
+@@ -0,0 +1,70 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -3040,7 +3249,14 @@ index 00000000..6a7455d6
 +    virtualServer.disconnected(this);
 +  }
 +
++  @Override
++  public void deactivated() {
++    virtualServer.disconnected(this);
++  }
++
 +  private void finishCheck() {
++    player.getConnection().setSessionHandler(originalHandler);
++    originalHandler.initialize(player);
 +    //fakeServer.getBotFilter().restoreOriginalHandlers(user);
 +    //afterCheck.run();
 +  }
@@ -3065,10 +3281,10 @@ index 00000000..6a7455d6
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/server/ServerPackets.java b/proxy/src/main/java/ru/leymooo/botfilter/server/ServerPackets.java
 new file mode 100644
-index 00000000..4f470791
+index 00000000..c064086f
 --- /dev/null
 +++ b/proxy/src/main/java/ru/leymooo/botfilter/server/ServerPackets.java
-@@ -0,0 +1,133 @@
+@@ -0,0 +1,150 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -3094,41 +3310,50 @@ index 00000000..4f470791
 +import com.velocitypowered.proxy.connection.registry.DimensionInfo;
 +import com.velocitypowered.proxy.protocol.StateRegistry;
 +import com.velocitypowered.proxy.protocol.packet.Disconnect;
++import java.util.ArrayList;
 +import java.util.Arrays;
++import java.util.List;
 +import lombok.Getter;
 +import net.kyori.adventure.text.Component;
 +import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 +import ru.leymooo.botfilter.config.BotFilterConfiguration;
++import ru.leymooo.botfilter.protocol.cache.MultiplePreparedPackets;
++import ru.leymooo.botfilter.protocol.cache.PacketCompressor;
++import ru.leymooo.botfilter.protocol.cache.PreparedPacket;
 +import ru.leymooo.botfilter.protocol.packet.JoinGame;
 +import ru.leymooo.botfilter.protocol.packet.PlayerPositionAndLook;
-+import ru.leymooo.botfilter.protocol.packet.world.EmptyChunk;
++import ru.leymooo.botfilter.protocol.packet.world.Chunk1_7;
++import ru.leymooo.botfilter.protocol.packet.world.ChunkData;
 +import ru.leymooo.botfilter.protocol.packet.world.EmptyChunk113;
-+import ru.leymooo.botfilter.protocol.packet.world.EmptyChunk17;
 +import ru.leymooo.botfilter.protocol.packet.world.EmptyChunk18;
 +import ru.leymooo.botfilter.protocol.registry.Biome;
 +import ru.leymooo.botfilter.protocol.registry.Dimension;
 +import ru.leymooo.botfilter.protocol.registry.DimensionRegistry;
-+import ru.leymooo.botfilter.protocol.util.MultiplePreparedPackets;
-+import ru.leymooo.botfilter.protocol.util.PacketCompressor;
-+import ru.leymooo.botfilter.protocol.util.PreparedPacket;
++import ru.leymooo.botfilter.server.world.SimpleChunk;
 +
 +@Getter
 +public class ServerPackets {
 +
-+  //JoinGame + PlayerPosAndLook + Chunk
 +  private final PacketCompressor packetCompressor;
++  private final VirtualServer virtualServer;
++  //JoinGame + PlayerPosAndLook + Chunks
 +  private MultiplePreparedPackets spawnPackets;
 +  private PreparedPacket<Disconnect> alreadyConnected;
 +
-+  public ServerPackets(PacketCompressor packetCompressor) {
++  public ServerPackets(PacketCompressor packetCompressor,
++      VirtualServer virtualServer) {
 +    this.packetCompressor = packetCompressor;
++    this.virtualServer = virtualServer;
 +  }
 +
 +
 +  public void createPackets(BotFilterConfiguration configuration) {
 +    releaseAll();
-+    spawnPackets = new MultiplePreparedPackets(createJoinGamePacket(),
-+        createPlayerPosAndLookPacket(), createEmptyChunkPacket());
++    List<PreparedPacket> preparedPackets = new ArrayList<>();
++    preparedPackets.add(createJoinGamePacket());
++    preparedPackets.add(createPlayerPosAndLookPacket());
++    preparedPackets.addAll(createChunksPackets());
++    spawnPackets = new MultiplePreparedPackets(preparedPackets.toArray(new PreparedPacket[0]));
 +    alreadyConnected = createDisconnectPacket("&cAlready connected", StateRegistry.LOGIN);
 +
 +  }
@@ -3151,18 +3376,26 @@ index 00000000..4f470791
 +
 +  private PreparedPacket<PlayerPositionAndLook> createPlayerPosAndLookPacket() {
 +    PreparedPacket<PlayerPositionAndLook> playerPosAndLook = new PreparedPacket<>();
-+    playerPosAndLook.prepare(new PlayerPositionAndLook(0, 60, 0, 0f, 0f, -133, false));
++    playerPosAndLook.prepare(new PlayerPositionAndLook(6, 60, 6, 0f, 0f, -133, false));
 +    return processCompression(playerPosAndLook);
 +  }
 +
-+  private PreparedPacket<EmptyChunk> createEmptyChunkPacket() {
-+    PreparedPacket<EmptyChunk> chunkPacket = new PreparedPacket<>();
-+    chunkPacket.prepare(new EmptyChunk17(0, 0), ProtocolVersion.MINECRAFT_1_7_2,
++  private List<PreparedPacket<ChunkData>> createChunksPackets() {
++    List<PreparedPacket<ChunkData>> packets = new ArrayList<>();
++    for (SimpleChunk chunk : virtualServer.getVirtualWorld().getChunks()) {
++      packets.add(createChunkDataPacket(chunk));
++    }
++    return packets;
++  }
++
++  private PreparedPacket<ChunkData> createChunkDataPacket(SimpleChunk chunk) {
++    PreparedPacket<ChunkData> chunkPacket = new PreparedPacket<>();
++    chunkPacket.prepare(new Chunk1_7(chunk), ProtocolVersion.MINECRAFT_1_7_2,
 +        ProtocolVersion.MINECRAFT_1_7_6);
-+    chunkPacket.prepare(new EmptyChunk18(0, 0), ProtocolVersion.MINECRAFT_1_8,
++    chunkPacket.prepare(new EmptyChunk18(chunk.getX(), chunk.getZ()), ProtocolVersion.MINECRAFT_1_8,
 +        ProtocolVersion.MINECRAFT_1_12_2);
-+    chunkPacket.prepare(new EmptyChunk113(0, 0), ProtocolVersion.MINECRAFT_1_13,
-+        ProtocolVersion.MAXIMUM_VERSION);
++    chunkPacket.prepare(new EmptyChunk113(chunk.getX(), chunk.getZ()),
++        ProtocolVersion.MINECRAFT_1_13);
 +    return processCompression(chunkPacket);
 +  }
 +
@@ -3204,10 +3437,10 @@ index 00000000..4f470791
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/server/VirtualServer.java b/proxy/src/main/java/ru/leymooo/botfilter/server/VirtualServer.java
 new file mode 100644
-index 00000000..f71f872b
+index 00000000..49a9ade9
 --- /dev/null
 +++ b/proxy/src/main/java/ru/leymooo/botfilter/server/VirtualServer.java
-@@ -0,0 +1,73 @@
+@@ -0,0 +1,77 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -3230,23 +3463,30 @@ index 00000000..f71f872b
 +
 +import com.velocitypowered.proxy.connection.MinecraftConnection;
 +import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
++import com.velocitypowered.proxy.connection.registry.DimensionInfo;
 +import com.velocitypowered.proxy.protocol.StateRegistry;
 +import java.util.concurrent.ConcurrentHashMap;
 +import java.util.concurrent.ConcurrentMap;
++import lombok.Getter;
 +import ru.leymooo.botfilter.BotFilter;
-+import ru.leymooo.botfilter.protocol.util.PacketCompressor;
++import ru.leymooo.botfilter.protocol.cache.PacketCompressor;
++import ru.leymooo.botfilter.protocol.registry.Dimension;
++import ru.leymooo.botfilter.server.world.VirtualWorld;
 +
 +public class VirtualServer {
 +
-+  private final BotFilter botFilter;
++  @Getter private final BotFilter botFilter;
 +  private final ConcurrentMap<String, BotFilterSessionHandler> activeConnections = new ConcurrentHashMap<>();
 +  private final ServerPackets packets;
++  @Getter private final VirtualWorld virtualWorld;
 +
 +
 +  public VirtualServer(BotFilter botFilter) {
 +    this.botFilter = botFilter;
 +    this.packets = new ServerPackets(
-+        new PacketCompressor(botFilter.getVelocityServer()::getConfiguration));
++        new PacketCompressor(botFilter.getVelocityServer()::getConfiguration), this);
++    this.virtualWorld = new VirtualWorld(Dimension.OVERWORLD,
++        new DimensionInfo(Dimension.OVERWORLD.getKey(), Dimension.OVERWORLD.getKey(), true, false));
 +  }
 +
 +
@@ -3277,9 +3517,447 @@ index 00000000..f71f872b
 +    activeConnections.remove(botFilterConnection.getPlayer().getUsername().toLowerCase());
 +  }
 +
-+  public BotFilter getBotFilter() {
-+    return botFilter;
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/server/world/SimpleBlock.java b/proxy/src/main/java/ru/leymooo/botfilter/server/world/SimpleBlock.java
+new file mode 100644
+index 00000000..32c70176
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/server/world/SimpleBlock.java
+@@ -0,0 +1,130 @@
++/*
++ * Velocity-BotFilter
++ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package ru.leymooo.botfilter.server.world;
++
++import java.util.EnumMap;
++import java.util.EnumSet;
++import java.util.Map;
++import lombok.Getter;
++import lombok.NonNull;
++import org.jetbrains.annotations.NotNull;
++
++
++public class SimpleBlock {
++
++  public static final SimpleBlock AIR = new SimpleBlock(false, map(Version.MINECRAFT_1_7, 0));
++  public static final SimpleBlock STONE = new SimpleBlock(map(Version.MINECRAFT_1_7, 1));
++  public static final SimpleBlock GRANITE = new SimpleBlock(map(Version.MINECRAFT_1_7, STONE),
++      map(Version.MINECRAFT_1_8, 1, 1));//todo 1.13+
++
++  public static final SimpleBlock GLASS = new SimpleBlock(map(Version.MINECRAFT_1_7, 20));
++  public static final SimpleBlock BARRIER = new SimpleBlock(map(Version.MINECRAFT_1_7, GLASS),
++      map(Version.MINECRAFT_1_8, 166));
++
++
++  private final Map<Version, BlockIdInfo> versionToID = new EnumMap<>(Version.class);
++  @Getter private final boolean solid;
++
++  public SimpleBlock(BlockIdInfo... mappings) {
++    this(true, mappings);
 +  }
++
++  public SimpleBlock(boolean isSolid, BlockIdInfo... mappings) {
++    this.solid = isSolid;
++    for (BlockIdInfo mapping : mappings) {
++      for (Version version : EnumSet.range(mapping.version, Version.MINECRAFT_1_16)) {
++        versionToID.put(version, mapping);
++      }
++    }
++  }
++
++
++  public short getId(Version version) {
++    return versionToID.get(version).getId();
++  }
++
++  public byte getData(Version version) {
++    return versionToID.get(version).getData();
++  }
++
++
++  public static BlockIdInfo map(Version version, int id) {
++    return map(version, (short) id, 0);
++  }
++
++  public static BlockIdInfo map(Version version, int id, int data) {
++    return new BlockIdInfo(version, (short) id, (byte) data);
++  }
++
++  public static BlockIdInfo map(Version version, SimpleBlock fallback) {
++    return new BlockIdInfo(version, fallback);
++  }
++
++  public enum Version {
++    MINECRAFT_1_7,
++    MINECRAFT_1_8,
++    MINECRAFT_1_9,
++    MINECRAFT_1_10,
++    MINECRAFT_1_11,
++    MINECRAFT_1_12,
++    MINECRAFT_1_13,
++    MINECRAFT_1_14,
++    MINECRAFT_1_15,
++    MINECRAFT_1_16
++
++  }
++
++  public static class BlockIdInfo {
++
++    private final Version version;
++    private final SimpleBlock fallback;
++    private final short id;
++    //1.7 - 1.12.2
++    private final byte data;
++
++
++    public BlockIdInfo(Version version, SimpleBlock fallback, short id, byte data) {
++      this.version = version;
++      this.fallback = fallback;
++      this.id = id;
++      this.data = data;
++    }
++
++    public BlockIdInfo(Version version, short id, byte data) {
++      this(version, null, id, data);
++    }
++
++    public BlockIdInfo(Version version, @NonNull @NotNull SimpleBlock fallback) {
++      this(version, fallback, (short) 0, (byte) 0);
++    }
++
++    public Version getVersion() {
++      return version;
++    }
++
++    public short getId() {
++      return fallback == null ? id : fallback.versionToID.get(version).getId();
++    }
++
++    public byte getData() {
++      return fallback == null ? data : fallback.versionToID.get(version).getData();
++    }
++  }
++
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/server/world/SimpleChunk.java b/proxy/src/main/java/ru/leymooo/botfilter/server/world/SimpleChunk.java
+new file mode 100644
+index 00000000..2d187e1d
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/server/world/SimpleChunk.java
+@@ -0,0 +1,174 @@
++/*
++ * Velocity-BotFilter
++ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package ru.leymooo.botfilter.server.world;
++
++import com.google.common.base.Preconditions;
++import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
++import java.util.function.Function;
++import java.util.function.Supplier;
++import lombok.Getter;
++import lombok.NoArgsConstructor;
++import lombok.NonNull;
++import lombok.Setter;
++import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
++import ru.leymooo.botfilter.protocol.registry.Biome;
++
++public class SimpleChunk {
++
++  public static final int MAX_BLOCKS_PER_SECTION = 16 * 16 * 16;
++
++  @Getter private final VirtualWorld instance;
++  @Getter private final int x;
++  @Getter private final int z;
++  @SuppressFBWarnings("EI_EXPOSE_REP")
++  @Getter private final ChunkSection[] sections = new ChunkSection[16];
++
++  public SimpleChunk(VirtualWorld instance, int x, int z) {
++    this.instance = instance;
++    this.x = x;
++    this.z = z;
++  }
++
++  public void setBlock(int x, int y, int z, @Nullable SimpleBlock block) {
++    ChunkSection section = getSection(y);
++    section.setBlockAt(x, y % 16, z, block);
++    if (section.getBlocksCount() == 0 && section.getBiome() == Biome.PLAINTS) {
++      sections[getSectionIndex(y)] = null;
++    }
++  }
++
++  @NotNull
++  public SimpleBlock getBlock(int x, int y, int z) {
++    return sectionAction(y, (s) -> s.getBlockAt(x, y, z), () -> SimpleBlock.AIR);
++  }
++
++  @NotNull
++  public Biome getBiome(int x, int y, int z) {
++    return sectionAction(y, ChunkSection::getBiome, () -> Biome.PLAINTS);
++  }
++
++  public void setBiome(int x, int y, int z, @NonNull Biome biome) {
++    ChunkSection section = getSection(y);
++    section.setBiome(biome);
++    if (section.getBlocksCount() == 0 && biome == Biome.PLAINTS) {
++      sections[getSectionIndex(y)] = null;
++    }
++  }
++
++  private ChunkSection getSection(int y) {
++    int s = getSectionIndex(y);
++    ChunkSection section = sections[s];
++    if (section == null) {
++      sections[s] = (section = new ChunkSection());
++    }
++    return section;
++  }
++
++  private <T> T sectionAction(int y, Function<ChunkSection, T> function, Supplier<T> ifNull) {
++    ChunkSection section = sections[getSectionIndex(y)];
++    if (section == null) {
++      return ifNull.get();
++    }
++    return function.apply(section);
++  }
++
++
++  private static int getSectionIndex(int y) {
++    return y / 16;
++  }
++
++
++  @NoArgsConstructor
++  public static class ChunkSection {
++
++    private SimpleBlock[] blocks;
++    @Getter
++    @Setter
++    private Biome biome = Biome.PLAINTS;
++    @Getter private short solidBlocks = 0;
++    @Getter private short blocksCount = 0;
++
++    public ChunkSection(Biome biome) {
++      this.biome = biome;
++    }
++
++    @NotNull
++    public SimpleBlock getBlockAt(int x, int y, int z) {
++      checkIndexes(x, y, z);
++      return getBlockAt(getBlockIndex(x, y, z));
++    }
++
++    @NotNull
++    private SimpleBlock getBlockAt(int index) {
++      return (blocks == null || blocks[index] == null) ? SimpleBlock.AIR : blocks[index];
++    }
++
++    public void setBlockAt(int x, int y, int z, @Nullable SimpleBlock block) {
++      checkIndexes(x, y, z);
++      setBlockAt(getBlockIndex(x, y, z), block);
++    }
++
++    private void setBlockAt(int index, @Nullable SimpleBlock block) {
++      if (block == SimpleBlock.AIR) {
++        setBlockAt(index, null);
++        return;
++      }
++
++      if (blocks == null) {
++        if (block == null) {
++          return;
++        }
++        blocks = new SimpleBlock[MAX_BLOCKS_PER_SECTION];
++      }
++
++      SimpleBlock old = blocks[index];
++      blocks[index] = block;
++
++      if (old != null) {
++        blocksCount--;
++        if (old.isSolid()) {
++          solidBlocks--;
++        }
++      }
++
++      if (block != null) {
++        blocksCount++;
++        if (block.isSolid()) {
++          solidBlocks++;
++        }
++      }
++    }
++
++    private void checkIndexes(int x, int y, int z) {
++      Preconditions.checkArgument(checkIndex(x), "x should be between 0 and 16");
++      Preconditions.checkArgument(checkIndex(y), "y should be between 0 and 16");
++      Preconditions.checkArgument(checkIndex(z), "z should be between 0 and 16");
++    }
++
++    private boolean checkIndex(int i) {
++      return i >= 0 && i <= 16;
++    }
++
++    public static int getBlockIndex(int x, int y, int z) {
++      return (y << 8) | (z << 4) | x;
++    }
++  }
++
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/server/world/VirtualWorld.java b/proxy/src/main/java/ru/leymooo/botfilter/server/world/VirtualWorld.java
+new file mode 100644
+index 00000000..550f88d6
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/server/world/VirtualWorld.java
+@@ -0,0 +1,119 @@
++/*
++ * Velocity-BotFilter
++ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package ru.leymooo.botfilter.server.world;
++
++import com.google.common.collect.ImmutableList;
++import com.velocitypowered.proxy.connection.registry.DimensionInfo;
++import java.util.HashMap;
++import java.util.List;
++import java.util.Map;
++import java.util.function.Function;
++import java.util.function.Supplier;
++import lombok.Getter;
++import lombok.NonNull;
++import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
++import ru.leymooo.botfilter.protocol.registry.Biome;
++import ru.leymooo.botfilter.protocol.registry.Dimension;
++
++public class VirtualWorld {
++
++  @NonNull
++  @Getter
++  private final Dimension dimension;
++  @NonNull
++  @Getter
++  private final DimensionInfo dimensionInfo;
++  private final Map<Long, SimpleChunk> chunks = new HashMap<>();
++
++  public VirtualWorld(@NonNull Dimension dimension, @NonNull DimensionInfo dimensionInfo) {
++    this.dimension = dimension;
++    this.dimensionInfo = dimensionInfo;
++    getChunkOrNew(0, 0);
++  }
++
++  public void setBlock(int x, int y, int z, @Nullable SimpleBlock block) {
++    SimpleChunk chunk = getChunkOrNew(x, z);
++    chunk.setBlock(getChunkCoordinate(x), y, getChunkCoordinate(z), block);
++  }
++
++  @NotNull
++  public SimpleBlock getBlock(int x, int y, int z) {
++    return chunkAction(x, z, (c) -> c.getBlock(getChunkCoordinate(x), y, getChunkCoordinate(z)),
++        () -> SimpleBlock.AIR);
++  }
++
++  public void setBiome(int x, int y, int z, @NonNull Biome biome) {
++    SimpleChunk chunk = getChunkOrNew(x, z);
++    chunk.setBiome(x, y, z, biome);
++  }
++
++  public Biome getBiome(int x, int y, int z) {
++    return chunkAction(x, z, (c) -> c.getBiome(x, y, z), () -> Biome.PLAINTS);
++  }
++
++  public List<SimpleChunk> getChunks() {
++    return ImmutableList.copyOf(chunks.values());
++  }
++
++  private <T> T chunkAction(int x, int z, Function<SimpleChunk, T> function, Supplier<T> ifNull) {
++    SimpleChunk chunk = getChunk(x, z);
++    if (chunk == null) {
++      return ifNull.get();
++    }
++    return function.apply(chunk);
++  }
++
++  @Nullable
++  public SimpleChunk getChunk(int x, int z) {
++    return chunks.get(getChunkIndex(getChunkXZ(x), getChunkXZ(z)));
++  }
++
++  @NotNull
++  public SimpleChunk getChunkOrNew(int x, int z) {
++    x = getChunkXZ(x);
++    z = getChunkXZ(z);
++    long index = getChunkIndex(x, z);
++    SimpleChunk simpleChunk = chunks.get(index);
++    if (simpleChunk == null) {
++      chunks.put(index, simpleChunk = new SimpleChunk(this, x, z));
++    }
++    return simpleChunk;
++  }
++
++
++  private static long getChunkIndex(int x, int z) {
++    return (((long) x) << 32) | (z & 0xffffffffL);
++  }
++
++
++  private static int getChunkXZ(int xz) {
++    return Math.floorDiv(xz, 16);
++  }
++
++  private static int getChunkCoordinate(int xz) {
++    xz %= 16;
++    if (xz < 0) {
++      xz += 16;
++    }
++    return xz;
++  }
++
++
 +}
 -- 
 2.29.2.windows.3
