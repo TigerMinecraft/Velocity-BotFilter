@@ -1,4 +1,4 @@
-From 07f8fc1d87437263842402468abf7df7d8b0b3e5 Mon Sep 17 00:00:00 2001
+From 8039ee0b776c8798328577e0be1650ac86750127 Mon Sep 17 00:00:00 2001
 From: Leymooo <vjatseslav.maspanov@gmail.com>
 Date: Sun, 4 Apr 2021 11:14:53 +0300
 Subject: [PATCH] [WIP] BotFilter
@@ -26,6 +26,34 @@ index 00000000..fdaaab86
 +You should have received a copy of the GNU Affero General Public License
 +along with this program.  If not, see <http://www.gnu.org/licenses/>.
 \ No newline at end of file
+diff --git a/HEADER_MCPROTOCOLLIB.txt b/HEADER_MCPROTOCOLLIB.txt
+new file mode 100644
+index 00000000..2e0cb6d7
+--- /dev/null
++++ b/HEADER_MCPROTOCOLLIB.txt
+@@ -0,0 +1,22 @@
++This file is part of MCProtocolLib, licensed under the MIT License (MIT).
++
++Copyright (c) Steveice10 <https://github.com/Steveice10/MCProtocolLib>
++Copyright (c) contributors
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in
++all copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
++THE SOFTWARE.
 diff --git a/LICENSE_BOTFILTER b/LICENSE_BOTFILTER
 new file mode 100644
 index 00000000..0ad25db4
@@ -751,10 +779,10 @@ index 97127d25..96084c96 100644
      this.inflater = new Inflater();
    }
 diff --git a/proxy/build.gradle b/proxy/build.gradle
-index e4e91469..67617302 100644
+index e4e91469..3bfffc57 100644
 --- a/proxy/build.gradle
 +++ b/proxy/build.gradle
-@@ -2,14 +2,17 @@ import com.github.jengelman.gradle.plugins.shadow.transformers.Log4j2PluginsCach
+@@ -2,14 +2,20 @@ import com.github.jengelman.gradle.plugins.shadow.transformers.Log4j2PluginsCach
  
  plugins {
      id 'java'
@@ -771,10 +799,13 @@ index e4e91469..67617302 100644
 +    matching(includes: ['**/botfilter/**']) {
 +        header = project.rootProject.file('HEADER_BOTFILTER.txt')
 +    }
++    matching(includes: ['**/mcprotocollib/**']) {
++        header = project.rootProject.file('HEADER_MCPROTOCOLLIB.txt')
++    }
      header = project.rootProject.file('HEADER.txt')
  }
  
-@@ -43,10 +46,10 @@ jar {
+@@ -43,10 +49,10 @@ jar {
  shadowJar {
      transform(Log4j2PluginsCacheFileTransformer)
  }
@@ -2205,12 +2236,12 @@ index 00000000..658cd5da
 +    return handler.handle(this);
 +  }
 +}
-diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/Chunk1_7.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/Chunk1_7.java
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/Chunk17to112.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/Chunk17to112.java
 new file mode 100644
-index 00000000..d83f334f
+index 00000000..2ef93c27
 --- /dev/null
-+++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/Chunk1_7.java
-@@ -0,0 +1,153 @@
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/Chunk17to112.java
+@@ -0,0 +1,127 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -2232,6 +2263,7 @@ index 00000000..d83f334f
 +package ru.leymooo.botfilter.protocol.packet.world;
 +
 +import com.velocitypowered.api.network.ProtocolVersion;
++import com.velocitypowered.proxy.protocol.ProtocolUtils;
 +import com.velocitypowered.proxy.protocol.ProtocolUtils.Direction;
 +import io.netty.buffer.ByteBuf;
 +import io.netty.buffer.Unpooled;
@@ -2239,66 +2271,49 @@ index 00000000..d83f334f
 +import java.util.Arrays;
 +import java.util.List;
 +import java.util.zip.Deflater;
-+import lombok.Getter;
 +import ru.leymooo.botfilter.protocol.registry.Biome;
-+import ru.leymooo.botfilter.protocol.util.ByteArray3d;
-+import ru.leymooo.botfilter.protocol.util.NibbleArray3d;
-+import ru.leymooo.botfilter.server.world.SimpleBlock;
-+import ru.leymooo.botfilter.server.world.SimpleBlock.Version;
++import ru.leymooo.botfilter.protocol.util.NetworkSection;
 +import ru.leymooo.botfilter.server.world.SimpleChunk;
 +import ru.leymooo.botfilter.server.world.SimpleChunk.ChunkSection;
 +
 +/**
-+ * 1.7
++ * 1.7 - 1.12.2
 + */
-+//TODO: Normal fields instead of byte array
-+public class Chunk1_7 extends ChunkData {
-+
-+
-+  private final byte[] chunkArray = new byte[]{0, 1, 0, 0, 0, 12, 0, 120, -100, 99, 96, 24, -39, 0,
-+      0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
++public class Chunk17to112 extends ChunkData {
 +
 +  private final SimpleChunk simpleChunk;
 +
-+  public Chunk1_7(SimpleChunk simpleChunk) {
++  public Chunk17to112(SimpleChunk simpleChunk) {
 +    super(simpleChunk.getX(), simpleChunk.getZ());
 +    this.simpleChunk = simpleChunk;
 +  }
 +
 +  @Override
-+  public void encode(ByteBuf buf, Direction direction, ProtocolVersion protocolVersion) {
-+    buf.writeInt(getX());
-+    buf.writeInt(getZ());
-+    buf.writeBoolean(true); //Full chunk
++  public void encode(ByteBuf buf, Direction direction, ProtocolVersion version) {
 +    ChunkSection[] sections = simpleChunk.getSections();
 +    List<NetworkSection> nSections = new ArrayList<>(16);
-+
++    boolean skyLight = simpleChunk.getInstance().getDimension().isHasSkylight();
 +    int bitMask = 0;
 +    int dataLength = 256; //Biomes
-+    boolean skyLight = simpleChunk.getInstance().getDimension().isHasSkylight();
-+
++    //Calculate bitMask, data length and convert chunk sections to network sections
 +    for (int s = 0; s < sections.length; s++) {
 +      ChunkSection section = sections[s];
-+      if (section != null && section.getBlocksCount() > 0) {
++      if (section != null && section.hasAnyData()) {
 +        bitMask |= 1 << s;
-+        NetworkSection networkSection = new NetworkSection(section, skyLight);
-+        dataLength += networkSection.getBlocks().getData().length;
-+        dataLength += networkSection.getMetadata().getData().length;
-+        dataLength += networkSection.getBlockLight().getData().length;
-+        if (skyLight) {
-+          dataLength += networkSection.getSkyLight().getData().length;
-+        }
++        NetworkSection networkSection = NetworkSection.create(version, section, skyLight);
++        dataLength += networkSection.getDataLength();
 +        nSections.add(networkSection);
 +      }
 +    }
-+    ByteBuf data = Unpooled.buffer(dataLength);
 +
-+    nSections.forEach(n -> data.writeBytes(n.getBlocks().getData()));
-+    nSections.forEach(n -> data.writeBytes(n.getMetadata().getData()));
-+    nSections.forEach(n -> data.writeBytes(n.getBlockLight().getData()));
-+    if (skyLight) {
-+      nSections.forEach(n -> data.writeBytes(n.getSkyLight().getData()));
++    //Write chunk sections data to buffer
++    ByteBuf data = Unpooled.buffer(dataLength);
++    for (int pass = 0; pass < 5; pass++) {
++      int finalPass = pass;
++      nSections.forEach(n -> n.writeData(data, finalPass));
 +    }
++
++    //Write biomes to buffer
 +    byte[] biomes = new byte[256];
 +    Arrays.fill(biomes, (byte) Biome.PLAINTS.id);
 +    for (int s = 0; s < sections.length; s++) {
@@ -2309,60 +2324,50 @@ index 00000000..d83f334f
 +    }
 +    data.writeBytes(biomes);
 +
-+    buf.writeShort(bitMask);
-+    buf.writeShort(0); //Extended bitmask
++    //write data to out buffer
++    buf.writeInt(getX());
++    buf.writeInt(getZ());
++    buf.writeBoolean(true); //Full chunk
++
++    if (version.isAfterOrEq(ProtocolVersion.MINECRAFT_1_9)) {
++      ProtocolUtils.writeVarInt(buf, bitMask);
++      ProtocolUtils.writeVarInt(buf, data.readableBytes());
++      buf.writeBytes(data);
++      if (version.isAfterOrEq(ProtocolVersion.MINECRAFT_1_9_4)) {
++        ProtocolUtils.writeVarInt(buf, 0); // no tile entities nbts
++      }
++    } else {
++      buf.writeShort(bitMask); //Number of chunks
++      if (version.isBefore(ProtocolVersion.MINECRAFT_1_8)) {
++        write17(buf, data);
++      } else {
++        ProtocolUtils.writeVarInt(buf, data.readableBytes());
++        buf.writeBytes(data);
++      }
++    }
++    data.release();
++
++  }
++
++  private void write17(ByteBuf out, ByteBuf data) {
++    out.writeShort(0); //Extended bitmask
 +
 +    byte[] uncompressed = new byte[data.readableBytes()];
 +    data.readBytes(uncompressed);
-+
 +    ByteBuf compressed = Unpooled.buffer();
-+
 +    Deflater deflater = new Deflater(9);
 +    deflater.setInput(uncompressed);
 +    deflater.finish();
 +    byte[] buffer = new byte[1024];
 +    while (!deflater.finished()) {
-+      int count = deflater.deflate(buffer); // returns the generated code... index
++      int count = deflater.deflate(buffer);
 +      compressed.writeBytes(buffer, 0, count);
 +    }
 +    deflater.end();
-+    buf.writeInt(compressed.readableBytes()); // compressed size
-+    buf.writeBytes(compressed);
-+
++    out.writeInt(compressed.readableBytes()); // compressed size
++    out.writeBytes(compressed);
 +    compressed.release();
-+    data.release();
-+
 +  }
-+
-+  @Getter
-+  private static class NetworkSection {
-+
-+    private final ByteArray3d blocks = new ByteArray3d(16 * 16 * 16);
-+    private final NibbleArray3d metadata = new NibbleArray3d(16 * 16 * 16);
-+    private final NibbleArray3d blockLight = new NibbleArray3d(16 * 16 * 16); //TODO Lighting
-+    private final NibbleArray3d skyLight; //TODO Lighting
-+
-+    public NetworkSection(ChunkSection chunkSection, boolean hasSkyLight) {
-+      for (int x = 0; x < 16; x++) {
-+        for (int y = 0; y < 16; y++) {
-+          for (int z = 0; z < 16; z++) {
-+            SimpleBlock block = chunkSection.getBlockAt(x, y, z);
-+            if (block == SimpleBlock.AIR) {
-+              continue;
-+            }
-+            blocks.set(x, y, z, block.getId(Version.MINECRAFT_1_7));
-+            metadata.set(x, y, z, block.getData(Version.MINECRAFT_1_7));
-+            blockLight.set(x, y, z, 0);
-+          }
-+        }
-+      }
-+      skyLight = hasSkyLight ? new NibbleArray3d(16 * 16 * 16) : null;
-+      if (hasSkyLight) {
-+        skyLight.fill(15);
-+      }
-+    }
-+  }
-+
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/ChunkData.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/ChunkData.java
 new file mode 100644
@@ -2531,66 +2536,6 @@ index 00000000..56504f2e
 +      buf.writeByte(0); //end of compound
 +    } catch (IOException ex) {
 +      throw new RuntimeException(ex);
-+    }
-+  }
-+
-+}
-diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/EmptyChunk18.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/EmptyChunk18.java
-new file mode 100644
-index 00000000..806c79e0
---- /dev/null
-+++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/EmptyChunk18.java
-@@ -0,0 +1,54 @@
-+/*
-+ * Velocity-BotFilter
-+ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU Affero General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU Affero General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU Affero General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+package ru.leymooo.botfilter.protocol.packet.world;
-+
-+import com.velocitypowered.api.network.ProtocolVersion;
-+import com.velocitypowered.proxy.protocol.ProtocolUtils;
-+import com.velocitypowered.proxy.protocol.ProtocolUtils.Direction;
-+import io.netty.buffer.ByteBuf;
-+
-+/**
-+ * 1.8 - 1.12.2
-+ */
-+public class EmptyChunk18 extends ChunkData {
-+
-+
-+  public EmptyChunk18(int x, int z) {
-+    super(x, z);
-+  }
-+
-+  @Override
-+  public void encode(ByteBuf buf, Direction direction, ProtocolVersion protocolVersion) {
-+    buf.writeInt(getX());
-+    buf.writeInt(getZ());
-+    buf.writeBoolean(true);
-+
-+    if (protocolVersion == ProtocolVersion.MINECRAFT_1_8) {
-+      buf.writeShort(1);
-+    } else {
-+      ProtocolUtils.writeVarInt(buf, 0);
-+    }
-+    ProtocolUtils.writeByteArray(buf, new byte[256]);
-+
-+    if (protocolVersion.compareTo(ProtocolVersion.MINECRAFT_1_9_4) >= 0) {
-+      ProtocolUtils.writeVarInt(buf, 0);
 +    }
 +  }
 +
@@ -3068,12 +3013,12 @@ index 00000000..66a72191
 +        .put("value", biomesBuilder.build()).build();
 +  }
 +}
-diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/ByteArray3d.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/ByteArray3d.java
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/NetworkSection.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/NetworkSection.java
 new file mode 100644
-index 00000000..48a78935
+index 00000000..69f8f2d4
 --- /dev/null
-+++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/ByteArray3d.java
-@@ -0,0 +1,53 @@
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/NetworkSection.java
+@@ -0,0 +1,252 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -3093,6 +3038,413 @@ index 00000000..48a78935
 + */
 +
 +package ru.leymooo.botfilter.protocol.util;
++
++import static ru.leymooo.botfilter.server.world.SimpleBlock.Version.MINECRAFT_1_7;
++import static ru.leymooo.botfilter.server.world.SimpleBlock.Version.MINECRAFT_1_8;
++
++import com.velocitypowered.api.network.ProtocolVersion;
++import io.netty.buffer.ByteBuf;
++import lombok.Getter;
++import ru.leymooo.botfilter.protocol.util.mcprotocollib.BlockStorage;
++import ru.leymooo.botfilter.protocol.util.mcprotocollib.ByteArray3d;
++import ru.leymooo.botfilter.protocol.util.mcprotocollib.NibbleArray3d;
++import ru.leymooo.botfilter.protocol.util.mcprotocollib.ShortArray3d;
++import ru.leymooo.botfilter.server.world.SimpleBlock;
++import ru.leymooo.botfilter.server.world.SimpleBlock.Version;
++import ru.leymooo.botfilter.server.world.SimpleChunk.ChunkSection;
++
++public abstract class NetworkSection {
++
++  @Getter private final ChunkSection section;
++  @Getter private final boolean skyLight;
++
++  public NetworkSection(ChunkSection section, boolean skyLight) {
++    this.section = section;
++    this.skyLight = skyLight;
++  }
++
++  public abstract int getDataLength();
++
++  public abstract void writeData(ByteBuf data, int pass);
++
++  abstract void setBlockLight(int x, int y, int z, byte blockLight);
++
++  abstract void setSkyLight(int x, int y, int z, byte skyLight);
++
++  abstract void setBlock(int x, int y, int z, SimpleBlock block);
++
++  protected void create() {
++    for (int x = 0; x < 16; x++) {
++      for (int y = 0; y < 16; y++) {
++        for (int z = 0; z < 16; z++) {
++          setBlockLight(x, y, z, getSection().getBlockLightAt(x, y, z));
++          setSkyLight(x, y, z, getSection().getSkyLightAt(x, y, z));
++          SimpleBlock simpleBlock = section.getBlockAt(x, y, z);
++          if (simpleBlock == SimpleBlock.AIR) {
++            continue;
++          }
++          setBlock(x, y, z, simpleBlock);
++        }
++      }
++    }
++  }
++
++  public static NetworkSection create(ProtocolVersion version, ChunkSection section, boolean sky) {
++
++    if (version.isBeforeOrEq(ProtocolVersion.MINECRAFT_1_7_6)) {
++      return new NetworkSection1_7(section, sky);
++    } else if (version.isBeforeOrEq(ProtocolVersion.MINECRAFT_1_8)) {
++      return new NetworkSection1_8(section, sky);
++    } else if (version.isBeforeOrEq(ProtocolVersion.MINECRAFT_1_9_4)) {
++      return new NetworkSection1_9(section, sky, Version.MINECRAFT_1_9);
++    } else if (version.isBeforeOrEq(ProtocolVersion.MINECRAFT_1_10)) {
++      return new NetworkSection1_9(section, sky, Version.MINECRAFT_1_10);
++    } else if (version.isBeforeOrEq(ProtocolVersion.MINECRAFT_1_11_1)) {
++      return new NetworkSection1_9(section, sky, Version.MINECRAFT_1_11);
++    } else {
++      return new NetworkSection1_9(section, sky, Version.MINECRAFT_1_12);
++    }
++
++  }
++
++  public static class NetworkSection1_7 extends NetworkSection {
++
++    private final ByteArray3d blocks = new ByteArray3d(16 * 16 * 16);
++    private final NibbleArray3d metadata = new NibbleArray3d(16 * 16 * 16);
++    private final NibbleArray3d blockLight = new NibbleArray3d(16 * 16 * 16);
++    private final NibbleArray3d skyLight;
++
++    public NetworkSection1_7(ChunkSection section, boolean skyLight) {
++      super(section, skyLight);
++      this.skyLight = skyLight ? new NibbleArray3d(16 * 16 * 16) : null;
++      create();
++    }
++
++
++    @Override
++    void setBlockLight(int x, int y, int z, byte blockLight) {
++      this.blockLight.set(x, y, z, blockLight);
++    }
++
++    @Override
++    void setSkyLight(int x, int y, int z, byte skyLight) {
++      this.skyLight.set(x, y, z, skyLight);
++    }
++
++    @Override
++    void setBlock(int x, int y, int z, SimpleBlock block) {
++      blocks.set(x, y, z, block.getId(MINECRAFT_1_7));
++      metadata.set(x, y, z, block.getData(MINECRAFT_1_7));
++    }
++
++    @Override
++    public void writeData(ByteBuf data, int pass) {
++      if (pass == 0) {
++        data.writeBytes(blocks.getData());
++      }
++      if (pass == 1) {
++        data.writeBytes(metadata.getData());
++      }
++      if (pass == 2) {
++        data.writeBytes(blockLight.getData());
++      }
++      if (pass == 3 && isSkyLight()) {
++        data.writeBytes(skyLight.getData());
++      }
++    }
++
++    @Override
++    public int getDataLength() {
++      int dataLength = 0;
++      dataLength += blocks.getData().length;
++      dataLength += metadata.getData().length;
++      dataLength += blockLight.getData().length;
++      if (isSkyLight()) {
++        dataLength += skyLight.getData().length;
++      }
++      return dataLength;
++    }
++  }
++
++  public static class NetworkSection1_8 extends NetworkSection {
++
++    private final ShortArray3d blocks = new ShortArray3d(16 * 16 * 16);
++    private final NibbleArray3d blockLight = new NibbleArray3d(16 * 16 * 16);
++    private final NibbleArray3d skyLight;
++
++    public NetworkSection1_8(ChunkSection section, boolean skyLight) {
++      super(section, skyLight);
++      this.skyLight = skyLight ? new NibbleArray3d(16 * 16 * 16) : null;
++      create();
++    }
++
++    @Override
++    void setBlockLight(int x, int y, int z, byte blockLight) {
++      this.blockLight.set(x, y, z, blockLight);
++    }
++
++    @Override
++    void setSkyLight(int x, int y, int z, byte skyLight) {
++      this.skyLight.set(x, y, z, skyLight);
++    }
++
++    @Override
++    void setBlock(int x, int y, int z, SimpleBlock block) {
++      blocks.setBlockAndData(x, y, z, block.getId(MINECRAFT_1_8), block.getData(MINECRAFT_1_8));
++    }
++
++    @Override
++    public void writeData(ByteBuf data, int pass) {
++      if (pass == 0) {
++        for (Short s : blocks.getData()) {
++          data.writeShortLE(s);
++        }
++      }
++      if (pass == 1) {
++        data.writeBytes(blockLight.getData());
++      }
++      if (pass == 2 && isSkyLight()) {
++        data.writeBytes(skyLight.getData());
++      }
++    }
++
++    @Override
++    public int getDataLength() {
++      int dataLength = 0;
++      dataLength += blocks.getData().length * 2;
++      dataLength += blockLight.getData().length;
++      if (isSkyLight()) {
++        dataLength += skyLight.getData().length;
++      }
++      return dataLength;
++    }
++  }
++
++  public static class NetworkSection1_9 extends NetworkSection {
++
++    private final BlockStorage blocks;
++    private final NibbleArray3d blockLight = new NibbleArray3d(16 * 16 * 16);
++    private final NibbleArray3d skyLight;
++
++    public NetworkSection1_9(ChunkSection section, boolean skyLight, Version version) {
++      super(section, skyLight);
++      this.blocks = new BlockStorage(version);
++      this.skyLight = skyLight ? new NibbleArray3d(16 * 16 * 16) : null;
++      create();
++    }
++
++    @Override
++    void setBlockLight(int x, int y, int z, byte blockLight) {
++      this.blockLight.set(x, y, z, blockLight);
++    }
++
++    @Override
++    void setSkyLight(int x, int y, int z, byte skyLight) {
++      this.skyLight.set(x, y, z, skyLight);
++    }
++
++    @Override
++    void setBlock(int x, int y, int z, SimpleBlock block) {
++      blocks.set(x, y, z, block);
++    }
++
++    @Override
++    public void writeData(ByteBuf data, int pass) {
++      if (pass == 0) {
++        blocks.write(data);
++        data.writeBytes(blockLight.getData());
++        if (isSkyLight()) {
++          data.writeBytes(skyLight.getData());
++        }
++      }
++    }
++
++    @Override
++    public int getDataLength() {
++      int dataLength = 0;
++      dataLength += blocks.calculateMaxSize();
++      dataLength += blockLight.getData().length;
++      if (isSkyLight()) {
++        dataLength += skyLight.getData().length;
++      }
++      return dataLength;
++    }
++  }
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/mcprotocollib/BlockStorage.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/mcprotocollib/BlockStorage.java
+new file mode 100644
+index 00000000..4545e3c4
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/mcprotocollib/BlockStorage.java
+@@ -0,0 +1,136 @@
++/*
++ * This file is part of MCProtocolLib, licensed under the MIT License (MIT).
++ *
++ * Copyright (c) Steveice10 <https://github.com/Steveice10/MCProtocolLib>
++ * Copyright (c) contributors
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining a copy
++ * of this software and associated documentation files (the "Software"), to deal
++ * in the Software without restriction, including without limitation the rights
++ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++ * copies of the Software, and to permit persons to whom the Software is
++ * furnished to do so, subject to the following conditions:
++ *
++ * The above copyright notice and this permission notice shall be included in
++ * all copies or substantial portions of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
++ * THE SOFTWARE.
++ */
++
++package ru.leymooo.botfilter.protocol.util.mcprotocollib;
++
++import com.velocitypowered.proxy.protocol.ProtocolUtils;
++import io.netty.buffer.ByteBuf;
++import java.util.ArrayList;
++import java.util.Collections;
++import java.util.List;
++import ru.leymooo.botfilter.server.world.SimpleBlock;
++import ru.leymooo.botfilter.server.world.SimpleBlock.Version;
++
++public class BlockStorage {
++
++  private static final SimpleBlock AIR = SimpleBlock.AIR;
++  private final Version version;
++  private int bitsPerEntry;
++  private List<SimpleBlock> states;
++  private FlexibleStorage storage;
++
++  public BlockStorage(Version version) {
++    this.version = version;
++    this.bitsPerEntry = 4;
++
++    this.states = new ArrayList<>();
++    this.states.add(AIR);
++
++    this.storage = new FlexibleStorage(this.bitsPerEntry, 4096);
++  }
++
++  public void write(ByteBuf out) {
++    out.writeByte(this.bitsPerEntry);
++
++    ProtocolUtils.writeVarInt(out, this.states.size());
++    for (SimpleBlock state : this.states) {
++      writeBlockState(out, state, version);
++    }
++
++    long[] data = this.storage.getData();
++    ProtocolUtils.writeVarInt(out, data.length);
++    for (long l : data) {
++      out.writeLong(l);
++    }
++  }
++
++  public int calculateMaxSize() {
++    return (5 + this.states.size() * 4) + (this.storage.getData().length * 8);
++  }
++
++  public int getBitsPerEntry() {
++    return this.bitsPerEntry;
++  }
++
++  public List<SimpleBlock> getStates() {
++    return Collections.unmodifiableList(this.states);
++  }
++
++  public FlexibleStorage getStorage() {
++    return this.storage;
++  }
++
++  public void set(int x, int y, int z, SimpleBlock state) {
++    int id = this.bitsPerEntry <= 8 ? this.states.indexOf(state) : stateToRaw(state, version);
++    if (id == -1) {
++      this.states.add(state);
++      if (this.states.size() > 1 << this.bitsPerEntry) {
++        this.bitsPerEntry++;
++
++        List<SimpleBlock> oldStates = this.states;
++        if (this.bitsPerEntry > 8) {
++          oldStates = new ArrayList<SimpleBlock>(this.states);
++          this.states.clear();
++          this.bitsPerEntry = 13;
++        }
++
++        FlexibleStorage oldStorage = this.storage;
++        this.storage = new FlexibleStorage(this.bitsPerEntry, this.storage.getSize());
++        for (int index = 0; index < this.storage.getSize(); index++) {
++          this.storage.set(index,
++              this.bitsPerEntry <= 8 ? oldStorage.get(index)
++                  : stateToRaw(oldStates.get(index), version));
++        }
++      }
++
++      id = this.bitsPerEntry <= 8 ? this.states.indexOf(state) : stateToRaw(state, version);
++    }
++
++    this.storage.set(index(x, y, z), id);
++  }
++
++  public boolean isEmpty() {
++    for (int index = 0; index < this.storage.getSize(); index++) {
++      if (this.storage.get(index) != 0) {
++        return false;
++      }
++    }
++
++    return true;
++  }
++
++  private static void writeBlockState(ByteBuf out, SimpleBlock blockState, Version version) {
++    ProtocolUtils
++        .writeVarInt(out, (blockState.getId(version) << 4) | (blockState.getData(version) & 0xF));
++  }
++
++  private static int index(int x, int y, int z) {
++    return y << 8 | z << 4 | x;
++  }
++
++  private static int stateToRaw(SimpleBlock state, Version version) {
++    return (state.getId(version) << 4) | (state.getData(version) & 0xF);
++  }
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/mcprotocollib/ByteArray3d.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/mcprotocollib/ByteArray3d.java
+new file mode 100644
+index 00000000..2ae875f9
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/mcprotocollib/ByteArray3d.java
+@@ -0,0 +1,60 @@
++/*
++ * This file is part of MCProtocolLib, licensed under the MIT License (MIT).
++ *
++ * Copyright (c) Steveice10 <https://github.com/Steveice10/MCProtocolLib>
++ * Copyright (c) contributors
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining a copy
++ * of this software and associated documentation files (the "Software"), to deal
++ * in the Software without restriction, including without limitation the rights
++ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++ * copies of the Software, and to permit persons to whom the Software is
++ * furnished to do so, subject to the following conditions:
++ *
++ * The above copyright notice and this permission notice shall be included in
++ * all copies or substantial portions of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
++ * THE SOFTWARE.
++ */
++
++package ru.leymooo.botfilter.protocol.util.mcprotocollib;
 +
 +import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 +import java.util.Arrays;
@@ -3127,31 +3479,166 @@ index 00000000..48a78935
 +  }
 +
 +}
-diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/NibbleArray3d.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/NibbleArray3d.java
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/mcprotocollib/FlexibleStorage.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/mcprotocollib/FlexibleStorage.java
 new file mode 100644
-index 00000000..731d0d00
+index 00000000..4918506c
 --- /dev/null
-+++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/NibbleArray3d.java
-@@ -0,0 +1,70 @@
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/mcprotocollib/FlexibleStorage.java
+@@ -0,0 +1,122 @@
 +/*
-+ * Velocity-BotFilter
-+ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ * This file is part of MCProtocolLib, licensed under the MIT License (MIT).
 + *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU Affero General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
++ * Copyright (c) Steveice10 <https://github.com/Steveice10/MCProtocolLib>
++ * Copyright (c) contributors
 + *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU Affero General Public License for more details.
++ * Permission is hereby granted, free of charge, to any person obtaining a copy
++ * of this software and associated documentation files (the "Software"), to deal
++ * in the Software without restriction, including without limitation the rights
++ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++ * copies of the Software, and to permit persons to whom the Software is
++ * furnished to do so, subject to the following conditions:
 + *
-+ * You should have received a copy of the GNU Affero General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ * The above copyright notice and this permission notice shall be included in
++ * all copies or substantial portions of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
++ * THE SOFTWARE.
 + */
 +
-+package ru.leymooo.botfilter.protocol.util;
++package ru.leymooo.botfilter.protocol.util.mcprotocollib;
++
++import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
++
++@SuppressFBWarnings({"EI_EXPOSE_REP2", "EI_EXPOSE_REP"})
++public class FlexibleStorage {
++
++  private final long[] data;
++  private final int bitsPerEntry;
++  private final int size;
++  private final long maxEntryValue;
++
++  public FlexibleStorage(int bitsPerEntry, int size) {
++    this(bitsPerEntry, new long[roundToNearest(size * bitsPerEntry, 64) / 64]);
++  }
++
++  public FlexibleStorage(int bitsPerEntry, long[] data) {
++    if (bitsPerEntry < 4) {
++      bitsPerEntry = 4;
++    }
++
++    this.bitsPerEntry = bitsPerEntry;
++    this.data = data;
++
++    this.size = this.data.length * 64 / this.bitsPerEntry;
++    this.maxEntryValue = (1L << this.bitsPerEntry) - 1;
++  }
++
++  public long[] getData() {
++    return this.data;
++  }
++
++  public int getBitsPerEntry() {
++    return this.bitsPerEntry;
++  }
++
++  public int getSize() {
++    return this.size;
++  }
++
++  public int get(int index) {
++    if (index < 0 || index > this.size - 1) {
++      throw new IndexOutOfBoundsException();
++    }
++
++    int bitIndex = index * this.bitsPerEntry;
++    int startIndex = bitIndex / 64;
++    int endIndex = ((index + 1) * this.bitsPerEntry - 1) / 64;
++    int startBitSubIndex = bitIndex % 64;
++    if (startIndex == endIndex) {
++      return (int) (this.data[startIndex] >>> startBitSubIndex & this.maxEntryValue);
++    } else {
++      int endBitSubIndex = 64 - startBitSubIndex;
++      return (int) (
++          (this.data[startIndex] >>> startBitSubIndex | this.data[endIndex] << endBitSubIndex)
++              & this.maxEntryValue);
++    }
++  }
++
++  public void set(int index, int value) {
++    if (index < 0 || index > this.size - 1) {
++      throw new IndexOutOfBoundsException();
++    }
++
++    if (value < 0 || value > this.maxEntryValue) {
++      throw new IllegalArgumentException("Value cannot be outside of accepted range.");
++    }
++
++    int bitIndex = index * this.bitsPerEntry;
++    int startIndex = bitIndex / 64;
++    int endIndex = ((index + 1) * this.bitsPerEntry - 1) / 64;
++    int startBitSubIndex = bitIndex % 64;
++    this.data[startIndex] = this.data[startIndex] & ~(this.maxEntryValue << startBitSubIndex)
++        | ((long) value & this.maxEntryValue) << startBitSubIndex;
++    if (startIndex != endIndex) {
++      int endBitSubIndex = 64 - startBitSubIndex;
++      this.data[endIndex] = this.data[endIndex] >>> endBitSubIndex << endBitSubIndex
++          | ((long) value & this.maxEntryValue) >> endBitSubIndex;
++    }
++  }
++
++  private static int roundToNearest(int value, int roundTo) {
++    if (roundTo == 0) {
++      return 0;
++    } else if (value == 0) {
++      return roundTo;
++    } else {
++      if (value < 0) {
++        roundTo *= -1;
++      }
++
++      int remainder = value % roundTo;
++      return remainder != 0 ? value + roundTo - remainder : value;
++    }
++  }
++
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/mcprotocollib/NibbleArray3d.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/mcprotocollib/NibbleArray3d.java
+new file mode 100644
+index 00000000..721d00b6
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/mcprotocollib/NibbleArray3d.java
+@@ -0,0 +1,77 @@
++/*
++ * This file is part of MCProtocolLib, licensed under the MIT License (MIT).
++ *
++ * Copyright (c) Steveice10 <https://github.com/Steveice10/MCProtocolLib>
++ * Copyright (c) contributors
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining a copy
++ * of this software and associated documentation files (the "Software"), to deal
++ * in the Software without restriction, including without limitation the rights
++ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++ * copies of the Software, and to permit persons to whom the Software is
++ * furnished to do so, subject to the following conditions:
++ *
++ * The above copyright notice and this permission notice shall be included in
++ * all copies or substantial portions of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
++ * THE SOFTWARE.
++ */
++
++package ru.leymooo.botfilter.protocol.util.mcprotocollib;
 +
 +import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 +
@@ -3200,6 +3687,115 @@ index 00000000..731d0d00
 +        this.data[ind] = (byte) (this.data[ind] & 15 | (val & 15) << 4);
 +      }
 +    }
++  }
++
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/mcprotocollib/ShortArray3d.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/mcprotocollib/ShortArray3d.java
+new file mode 100644
+index 00000000..3cfbe4e4
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/mcprotocollib/ShortArray3d.java
+@@ -0,0 +1,103 @@
++/*
++ * This file is part of MCProtocolLib, licensed under the MIT License (MIT).
++ *
++ * Copyright (c) Steveice10 <https://github.com/Steveice10/MCProtocolLib>
++ * Copyright (c) contributors
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining a copy
++ * of this software and associated documentation files (the "Software"), to deal
++ * in the Software without restriction, including without limitation the rights
++ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++ * copies of the Software, and to permit persons to whom the Software is
++ * furnished to do so, subject to the following conditions:
++ *
++ * The above copyright notice and this permission notice shall be included in
++ * all copies or substantial portions of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
++ * THE SOFTWARE.
++ */
++
++package ru.leymooo.botfilter.protocol.util.mcprotocollib;
++
++import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
++import java.util.Arrays;
++
++@SuppressFBWarnings({"EI_EXPOSE_REP2", "EI_EXPOSE_REP"})
++public class ShortArray3d {
++
++  private short[] data;
++
++  public ShortArray3d(int size) {
++    this.data = new short[size];
++  }
++
++  public ShortArray3d(short[] array) {
++    this.data = array;
++  }
++
++  public short[] getData() {
++    return this.data;
++  }
++
++  public int get(int x, int y, int z) {
++    return this.data[y << 8 | z << 4 | x] & 0xFFFF;
++  }
++
++  public void set(int x, int y, int z, int val) {
++    this.data[y << 8 | z << 4 | x] = (short) val;
++  }
++
++  public int getBlock(int x, int y, int z) {
++    return this.get(x, y, z) >> 4;
++  }
++
++  public void setBlock(int x, int y, int z, int block) {
++    this.set(x, y, z, block << 4 | this.getData(x, y, z));
++  }
++
++  public int getData(int x, int y, int z) {
++    return this.get(x, y, z) & 0xF;
++  }
++
++  public void setData(int x, int y, int z, int data) {
++    this.set(x, y, z, this.getBlock(x, y, z) << 4 | data);
++  }
++
++  public void setBlockAndData(int x, int y, int z, int block, int data) {
++    this.set(x, y, z, block << 4 | data);
++  }
++
++  public void fill(int val) {
++    Arrays.fill(this.data, (short) val);
++  }
++
++  @Override
++  public boolean equals(Object o) {
++      if (this == o) {
++          return true;
++      }
++      if (o == null || getClass() != o.getClass()) {
++          return false;
++      }
++
++    ShortArray3d that = (ShortArray3d) o;
++
++      if (!Arrays.equals(data, that.data)) {
++          return false;
++      }
++
++    return true;
++  }
++
++  @Override
++  public int hashCode() {
++    return Arrays.hashCode(data);
 +  }
 +
 +}
@@ -3281,10 +3877,10 @@ index 00000000..ed366429
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/server/ServerPackets.java b/proxy/src/main/java/ru/leymooo/botfilter/server/ServerPackets.java
 new file mode 100644
-index 00000000..c064086f
+index 00000000..cda952e3
 --- /dev/null
 +++ b/proxy/src/main/java/ru/leymooo/botfilter/server/ServerPackets.java
-@@ -0,0 +1,150 @@
+@@ -0,0 +1,154 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -3322,23 +3918,25 @@ index 00000000..c064086f
 +import ru.leymooo.botfilter.protocol.cache.PreparedPacket;
 +import ru.leymooo.botfilter.protocol.packet.JoinGame;
 +import ru.leymooo.botfilter.protocol.packet.PlayerPositionAndLook;
-+import ru.leymooo.botfilter.protocol.packet.world.Chunk1_7;
++import ru.leymooo.botfilter.protocol.packet.world.Chunk17to112;
 +import ru.leymooo.botfilter.protocol.packet.world.ChunkData;
 +import ru.leymooo.botfilter.protocol.packet.world.EmptyChunk113;
-+import ru.leymooo.botfilter.protocol.packet.world.EmptyChunk18;
 +import ru.leymooo.botfilter.protocol.registry.Biome;
 +import ru.leymooo.botfilter.protocol.registry.Dimension;
 +import ru.leymooo.botfilter.protocol.registry.DimensionRegistry;
 +import ru.leymooo.botfilter.server.world.SimpleChunk;
++import ru.leymooo.botfilter.server.world.VirtualWorld;
 +
 +@Getter
 +public class ServerPackets {
 +
 +  private final PacketCompressor packetCompressor;
 +  private final VirtualServer virtualServer;
++  private VirtualWorld virtualWorld;
 +  //JoinGame + PlayerPosAndLook + Chunks
 +  private MultiplePreparedPackets spawnPackets;
 +  private PreparedPacket<Disconnect> alreadyConnected;
++
 +
 +  public ServerPackets(PacketCompressor packetCompressor,
 +      VirtualServer virtualServer) {
@@ -3349,15 +3947,19 @@ index 00000000..c064086f
 +
 +  public void createPackets(BotFilterConfiguration configuration) {
 +    releaseAll();
++    this.virtualWorld = new VirtualWorld(Dimension.OVERWORLD,
++        new DimensionInfo(Dimension.OVERWORLD.getKey(), Dimension.OVERWORLD.getKey(), true, false));
++    virtualWorld.setSkyLight(0, 60, 0, (byte) 1); //1.7 workaround
 +    List<PreparedPacket> preparedPackets = new ArrayList<>();
 +    preparedPackets.add(createJoinGamePacket());
 +    preparedPackets.add(createPlayerPosAndLookPacket());
 +    preparedPackets.addAll(createChunksPackets());
 +    spawnPackets = new MultiplePreparedPackets(preparedPackets.toArray(new PreparedPacket[0]));
 +    alreadyConnected = createDisconnectPacket("&cAlready connected", StateRegistry.LOGIN);
-+
++    virtualWorld = null;
 +  }
 +
++  //TODO use Dimensions ids for < 1.16 version
 +  private PreparedPacket<JoinGame> createJoinGamePacket() {
 +    DimensionRegistry dimensionRegistry = new DimensionRegistry();
 +    dimensionRegistry.addDimension(
@@ -3382,7 +3984,7 @@ index 00000000..c064086f
 +
 +  private List<PreparedPacket<ChunkData>> createChunksPackets() {
 +    List<PreparedPacket<ChunkData>> packets = new ArrayList<>();
-+    for (SimpleChunk chunk : virtualServer.getVirtualWorld().getChunks()) {
++    for (SimpleChunk chunk : virtualWorld.getChunks()) {
 +      packets.add(createChunkDataPacket(chunk));
 +    }
 +    return packets;
@@ -3390,9 +3992,7 @@ index 00000000..c064086f
 +
 +  private PreparedPacket<ChunkData> createChunkDataPacket(SimpleChunk chunk) {
 +    PreparedPacket<ChunkData> chunkPacket = new PreparedPacket<>();
-+    chunkPacket.prepare(new Chunk1_7(chunk), ProtocolVersion.MINECRAFT_1_7_2,
-+        ProtocolVersion.MINECRAFT_1_7_6);
-+    chunkPacket.prepare(new EmptyChunk18(chunk.getX(), chunk.getZ()), ProtocolVersion.MINECRAFT_1_8,
++    chunkPacket.prepare(new Chunk17to112(chunk), ProtocolVersion.MINECRAFT_1_7_2,
 +        ProtocolVersion.MINECRAFT_1_12_2);
 +    chunkPacket.prepare(new EmptyChunk113(chunk.getX(), chunk.getZ()),
 +        ProtocolVersion.MINECRAFT_1_13);
@@ -3437,10 +4037,10 @@ index 00000000..c064086f
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/server/VirtualServer.java b/proxy/src/main/java/ru/leymooo/botfilter/server/VirtualServer.java
 new file mode 100644
-index 00000000..49a9ade9
+index 00000000..d40e35c3
 --- /dev/null
 +++ b/proxy/src/main/java/ru/leymooo/botfilter/server/VirtualServer.java
-@@ -0,0 +1,77 @@
+@@ -0,0 +1,73 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -3478,15 +4078,11 @@ index 00000000..49a9ade9
 +  @Getter private final BotFilter botFilter;
 +  private final ConcurrentMap<String, BotFilterSessionHandler> activeConnections = new ConcurrentHashMap<>();
 +  private final ServerPackets packets;
-+  @Getter private final VirtualWorld virtualWorld;
-+
 +
 +  public VirtualServer(BotFilter botFilter) {
 +    this.botFilter = botFilter;
 +    this.packets = new ServerPackets(
 +        new PacketCompressor(botFilter.getVelocityServer()::getConfiguration), this);
-+    this.virtualWorld = new VirtualWorld(Dimension.OVERWORLD,
-+        new DimensionInfo(Dimension.OVERWORLD.getKey(), Dimension.OVERWORLD.getKey(), true, false));
 +  }
 +
 +
@@ -3520,10 +4116,10 @@ index 00000000..49a9ade9
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/server/world/SimpleBlock.java b/proxy/src/main/java/ru/leymooo/botfilter/server/world/SimpleBlock.java
 new file mode 100644
-index 00000000..32c70176
+index 00000000..9af97fa9
 --- /dev/null
 +++ b/proxy/src/main/java/ru/leymooo/botfilter/server/world/SimpleBlock.java
-@@ -0,0 +1,130 @@
+@@ -0,0 +1,132 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -3544,62 +4140,58 @@ index 00000000..32c70176
 +
 +package ru.leymooo.botfilter.server.world;
 +
++import static ru.leymooo.botfilter.server.world.SimpleBlock.BlockInfo.fallback;
++import static ru.leymooo.botfilter.server.world.SimpleBlock.BlockInfo.info;
++import static ru.leymooo.botfilter.server.world.SimpleBlock.Version.MINECRAFT_1_7;
++import static ru.leymooo.botfilter.server.world.SimpleBlock.Version.MINECRAFT_1_8;
++
 +import java.util.EnumMap;
 +import java.util.EnumSet;
 +import java.util.Map;
-+import lombok.Getter;
-+import lombok.NonNull;
++import lombok.RequiredArgsConstructor;
 +import org.jetbrains.annotations.NotNull;
-+
 +
 +public class SimpleBlock {
 +
-+  public static final SimpleBlock AIR = new SimpleBlock(false, map(Version.MINECRAFT_1_7, 0));
-+  public static final SimpleBlock STONE = new SimpleBlock(map(Version.MINECRAFT_1_7, 1));
-+  public static final SimpleBlock GRANITE = new SimpleBlock(map(Version.MINECRAFT_1_7, STONE),
-+      map(Version.MINECRAFT_1_8, 1, 1));//todo 1.13+
++  public static final SimpleBlock AIR = nonSolid(info(MINECRAFT_1_7, 0));
++  public static final SimpleBlock STONE = solid(info(MINECRAFT_1_7, 1));
++  public static final SimpleBlock GRANITE = solid(fallback(MINECRAFT_1_7, STONE),
++      info(MINECRAFT_1_8, 1, 1));
++  public static final SimpleBlock GLASS = solid(info(MINECRAFT_1_7, 20));
++  public static final SimpleBlock BARRIER = solid(fallback(MINECRAFT_1_7, GLASS),
++      info(MINECRAFT_1_8, 166));
++  public static final SimpleBlock TORCH = nonSolid(info(MINECRAFT_1_7, 50, 14));
 +
-+  public static final SimpleBlock GLASS = new SimpleBlock(map(Version.MINECRAFT_1_7, 20));
-+  public static final SimpleBlock BARRIER = new SimpleBlock(map(Version.MINECRAFT_1_7, GLASS),
-+      map(Version.MINECRAFT_1_8, 166));
++  private final Map<Version, BlockInfo> blockInfos = new EnumMap<>(Version.class);
++  private final boolean solid;
 +
-+
-+  private final Map<Version, BlockIdInfo> versionToID = new EnumMap<>(Version.class);
-+  @Getter private final boolean solid;
-+
-+  public SimpleBlock(BlockIdInfo... mappings) {
-+    this(true, mappings);
-+  }
-+
-+  public SimpleBlock(boolean isSolid, BlockIdInfo... mappings) {
-+    this.solid = isSolid;
-+    for (BlockIdInfo mapping : mappings) {
-+      for (Version version : EnumSet.range(mapping.version, Version.MINECRAFT_1_16)) {
-+        versionToID.put(version, mapping);
++  public SimpleBlock(boolean solid, BlockInfo... blockInfos) {
++    for (BlockInfo info : blockInfos) {
++      for (Version version : EnumSet.range(info.version, Version.MINECRAFT_1_16)) {
++        this.blockInfos.put(version, info);
 +      }
 +    }
++    this.solid = solid;
 +  }
 +
-+
 +  public short getId(Version version) {
-+    return versionToID.get(version).getId();
++    return blockInfos.get(version).getId();
 +  }
 +
 +  public byte getData(Version version) {
-+    return versionToID.get(version).getData();
++    return blockInfos.get(version).getData();
 +  }
 +
-+
-+  public static BlockIdInfo map(Version version, int id) {
-+    return map(version, (short) id, 0);
++  public boolean isSolid() {
++    return solid;
 +  }
 +
-+  public static BlockIdInfo map(Version version, int id, int data) {
-+    return new BlockIdInfo(version, (short) id, (byte) data);
++  public static SimpleBlock solid(BlockInfo... infos) {
++    return new SimpleBlock(true, infos);
 +  }
 +
-+  public static BlockIdInfo map(Version version, SimpleBlock fallback) {
-+    return new BlockIdInfo(version, fallback);
++  public static SimpleBlock nonSolid(BlockInfo... infos) {
++    return new SimpleBlock(false, infos);
 +  }
 +
 +  public enum Version {
@@ -3613,53 +4205,59 @@ index 00000000..32c70176
 +    MINECRAFT_1_14,
 +    MINECRAFT_1_15,
 +    MINECRAFT_1_16
-+
 +  }
 +
-+  public static class BlockIdInfo {
++  @RequiredArgsConstructor
++  public static class BlockInfo {
 +
-+    private final Version version;
-+    private final SimpleBlock fallback;
++
++    @NotNull private final Version version;
 +    private final short id;
-+    //1.7 - 1.12.2
 +    private final byte data;
++    private final BlockInfo fallback;
 +
-+
-+    public BlockIdInfo(Version version, SimpleBlock fallback, short id, byte data) {
-+      this.version = version;
-+      this.fallback = fallback;
-+      this.id = id;
-+      this.data = data;
++    public BlockInfo(@NotNull Version version, short id, byte data) {
++      this(version, id, data, null);
 +    }
 +
-+    public BlockIdInfo(Version version, short id, byte data) {
-+      this(version, null, id, data);
++    public BlockInfo(@NotNull Version version, @NotNull BlockInfo fallback) {
++      this(version, (short) 0, (byte) 0, fallback);
 +    }
 +
-+    public BlockIdInfo(Version version, @NonNull @NotNull SimpleBlock fallback) {
-+      this(version, fallback, (short) 0, (byte) 0);
-+    }
-+
-+    public Version getVersion() {
++    public @NotNull Version getVersion() {
 +      return version;
 +    }
 +
 +    public short getId() {
-+      return fallback == null ? id : fallback.versionToID.get(version).getId();
++      return fallback == null ? id : fallback.getId();
 +    }
 +
 +    public byte getData() {
-+      return fallback == null ? data : fallback.versionToID.get(version).getData();
++      return fallback == null ? data : fallback.getData();
++    }
++
++    public static BlockInfo info(Version version, int id, int meta) {
++      return new BlockInfo(version, (short) id, (byte) meta);
++    }
++
++    public static BlockInfo info(Version version, int id) {
++      return info(version, id, 0);
++    }
++
++
++    public static BlockInfo fallback(Version version, SimpleBlock fallback) {
++      return new BlockInfo(version, fallback.blockInfos.get(version));
 +    }
 +  }
++
 +
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/server/world/SimpleChunk.java b/proxy/src/main/java/ru/leymooo/botfilter/server/world/SimpleChunk.java
 new file mode 100644
-index 00000000..2d187e1d
+index 00000000..a1b5019a
 --- /dev/null
 +++ b/proxy/src/main/java/ru/leymooo/botfilter/server/world/SimpleChunk.java
-@@ -0,0 +1,174 @@
+@@ -0,0 +1,223 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -3691,6 +4289,7 @@ index 00000000..2d187e1d
 +import org.jetbrains.annotations.NotNull;
 +import org.jetbrains.annotations.Nullable;
 +import ru.leymooo.botfilter.protocol.registry.Biome;
++import ru.leymooo.botfilter.protocol.util.mcprotocollib.NibbleArray3d;
 +
 +public class SimpleChunk {
 +
@@ -3700,7 +4299,8 @@ index 00000000..2d187e1d
 +  @Getter private final int x;
 +  @Getter private final int z;
 +  @SuppressFBWarnings("EI_EXPOSE_REP")
-+  @Getter private final ChunkSection[] sections = new ChunkSection[16];
++  @Getter
++  private final ChunkSection[] sections = new ChunkSection[16];
 +
 +  public SimpleChunk(VirtualWorld instance, int x, int z) {
 +    this.instance = instance;
@@ -3711,14 +4311,11 @@ index 00000000..2d187e1d
 +  public void setBlock(int x, int y, int z, @Nullable SimpleBlock block) {
 +    ChunkSection section = getSection(y);
 +    section.setBlockAt(x, y % 16, z, block);
-+    if (section.getBlocksCount() == 0 && section.getBiome() == Biome.PLAINTS) {
-+      sections[getSectionIndex(y)] = null;
-+    }
 +  }
 +
 +  @NotNull
 +  public SimpleBlock getBlock(int x, int y, int z) {
-+    return sectionAction(y, (s) -> s.getBlockAt(x, y, z), () -> SimpleBlock.AIR);
++    return sectionAction(y, (s) -> s.getBlockAt(x, y % 16, z), () -> SimpleBlock.AIR);
 +  }
 +
 +  @NotNull
@@ -3729,9 +4326,22 @@ index 00000000..2d187e1d
 +  public void setBiome(int x, int y, int z, @NonNull Biome biome) {
 +    ChunkSection section = getSection(y);
 +    section.setBiome(biome);
-+    if (section.getBlocksCount() == 0 && biome == Biome.PLAINTS) {
-+      sections[getSectionIndex(y)] = null;
-+    }
++  }
++
++  public byte getBlockLight(int x, int y, int z) {
++    return sectionAction(y, (s) -> s.getBlockLightAt(x, y % 16, z), () -> (byte) 0);
++  }
++
++  public void setBlockLight(int x, int y, int z, byte light) {
++    getSection(y).setBlockLightAt(x, y % 16, z, light);
++  }
++
++  public byte getSkyLight(int x, int y, int z) {
++    return sectionAction(y, (s) -> s.getSkyLightAt(x, y % 16, z), () -> (byte) 0);
++  }
++
++  public void setSkyLight(int x, int y, int z, byte light) {
++    getSection(y).setSkyLightAt(x, y % 16, z, light);
 +  }
 +
 +  private ChunkSection getSection(int y) {
@@ -3761,13 +4371,16 @@ index 00000000..2d187e1d
 +  public static class ChunkSection {
 +
 +    private SimpleBlock[] blocks;
++    private NibbleArray3d blockLight;
++    private NibbleArray3d skyLight;
 +    @Getter
 +    @Setter
++    @NonNull
 +    private Biome biome = Biome.PLAINTS;
 +    @Getter private short solidBlocks = 0;
 +    @Getter private short blocksCount = 0;
 +
-+    public ChunkSection(Biome biome) {
++    public ChunkSection(@NonNull Biome biome) {
 +      this.biome = biome;
 +    }
 +
@@ -3818,14 +4431,48 @@ index 00000000..2d187e1d
 +      }
 +    }
 +
++    public byte getBlockLightAt(int x, int y, int z) {
++      checkIndexes(x, y, z);
++      return (byte) (blockLight == null ? 0 : blockLight.get(x, y, z));
++    }
++
++
++    public void setBlockLightAt(int x, int y, int z, byte light) {
++      checkIndexes(x, y, z);
++      Preconditions.checkArgument(light >= 0 && light <= 15, "light should be between 0 and 15");
++      if (blockLight == null) {
++        blockLight = new NibbleArray3d(MAX_BLOCKS_PER_SECTION);
++      }
++      blockLight.set(x, y, z, light);
++    }
++
++    public byte getSkyLightAt(int x, int y, int z) {
++      checkIndexes(x, y, z);
++      return (byte) (skyLight == null ? 0 : skyLight.get(x, y, z));
++    }
++
++
++    public void setSkyLightAt(int x, int y, int z, byte light) {
++      checkIndexes(x, y, z);
++      Preconditions.checkArgument(light >= 0 && light <= 15, "light should be between 0 and 15");
++      if (skyLight == null) {
++        skyLight = new NibbleArray3d(MAX_BLOCKS_PER_SECTION);
++      }
++      skyLight.set(x, y, z, light);
++    }
++
++    public boolean hasAnyData() {
++      return blocksCount > 0 || skyLight != null || blockLight != null;
++    }
++
 +    private void checkIndexes(int x, int y, int z) {
-+      Preconditions.checkArgument(checkIndex(x), "x should be between 0 and 16");
-+      Preconditions.checkArgument(checkIndex(y), "y should be between 0 and 16");
-+      Preconditions.checkArgument(checkIndex(z), "z should be between 0 and 16");
++      Preconditions.checkArgument(checkIndex(x), "x should be between 0 and 15");
++      Preconditions.checkArgument(checkIndex(y), "y should be between 0 and 15");
++      Preconditions.checkArgument(checkIndex(z), "z should be between 0 and 15");
 +    }
 +
 +    private boolean checkIndex(int i) {
-+      return i >= 0 && i <= 16;
++      return i >= 0 && i <= 15;
 +    }
 +
 +    public static int getBlockIndex(int x, int y, int z) {
@@ -3836,10 +4483,10 @@ index 00000000..2d187e1d
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/server/world/VirtualWorld.java b/proxy/src/main/java/ru/leymooo/botfilter/server/world/VirtualWorld.java
 new file mode 100644
-index 00000000..550f88d6
+index 00000000..a20f83bc
 --- /dev/null
 +++ b/proxy/src/main/java/ru/leymooo/botfilter/server/world/VirtualWorld.java
-@@ -0,0 +1,119 @@
+@@ -0,0 +1,136 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -3891,8 +4538,7 @@ index 00000000..550f88d6
 +  }
 +
 +  public void setBlock(int x, int y, int z, @Nullable SimpleBlock block) {
-+    SimpleChunk chunk = getChunkOrNew(x, z);
-+    chunk.setBlock(getChunkCoordinate(x), y, getChunkCoordinate(z), block);
++    getChunkOrNew(x, z).setBlock(getChunkCoordinate(x), y, getChunkCoordinate(z), block);
 +  }
 +
 +  @NotNull
@@ -3902,12 +4548,30 @@ index 00000000..550f88d6
 +  }
 +
 +  public void setBiome(int x, int y, int z, @NonNull Biome biome) {
-+    SimpleChunk chunk = getChunkOrNew(x, z);
-+    chunk.setBiome(x, y, z, biome);
++    getChunkOrNew(x, z).setBiome(x, y, z, biome);
 +  }
 +
 +  public Biome getBiome(int x, int y, int z) {
 +    return chunkAction(x, z, (c) -> c.getBiome(x, y, z), () -> Biome.PLAINTS);
++  }
++
++  public byte getBlockLight(int x, int y, int z) {
++    return chunkAction(x, z,
++        (c) -> c.getBlockLight(getChunkCoordinate(x), y, getChunkCoordinate(z)), () -> (byte) 0);
++  }
++
++  public void setBlockLight(int x, int y, int z, byte light) {
++    getChunkOrNew(x, z).setBlockLight(getChunkCoordinate(x), y, getChunkCoordinate(z), light);
++  }
++
++  public byte getSkyLight(int x, int y, int z) {
++    return chunkAction(x, z,
++        (c) -> c.getSkyLight(getChunkCoordinate(x), y, getChunkCoordinate(z)), () -> (byte) 0);
++  }
++
++
++  public void setSkyLight(int x, int y, int z, byte light) {
++    getChunkOrNew(x, z).setSkyLight(getChunkCoordinate(x), y, getChunkCoordinate(z), light);
 +  }
 +
 +  public List<SimpleChunk> getChunks() {
