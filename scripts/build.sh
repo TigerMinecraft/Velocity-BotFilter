@@ -3,5 +3,5 @@
 git submodule update --init && ./scripts/applyPatches.sh || exit 1
 
 if [ "$1" == "--jar" ]; then
-     cd BotFilter-proxy && ./gradlew clean build && cd ..
+     cd BotFilter-proxy && ./gradlew build && cd ..
 fi

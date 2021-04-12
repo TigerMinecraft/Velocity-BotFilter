@@ -1,4 +1,4 @@
-From 8039ee0b776c8798328577e0be1650ac86750127 Mon Sep 17 00:00:00 2001
+From 90d63b7a728085f9cdd33922b1ba36beed61563e Mon Sep 17 00:00:00 2001
 From: Leymooo <vjatseslav.maspanov@gmail.com>
 Date: Sun, 4 Apr 2021 11:14:53 +0300
 Subject: [PATCH] [WIP] BotFilter
@@ -754,6 +754,18 @@ index 8b3632f9..7cf0f237 100644
    @Override
    public String toString() {
      return getVersionIntroducedIn();
+diff --git a/build.gradle b/build.gradle
+index 4c30f6a5..7caf911f 100644
+--- a/build.gradle
++++ b/build.gradle
+@@ -11,6 +11,7 @@ plugins {
+     id 'java'
+     id "com.github.spotbugs" version "4.7.0" apply false
+     id 'org.cadixdev.licenser' version '0.5.1' apply false
++    id "io.freefair.lombok" version "6.0.0-m2" apply false //BotFilter add lombok
+ }
+ 
+ allprojects {
 diff --git a/native/src/main/java/com/velocitypowered/natives/compression/Java11VelocityCompressor.java b/native/src/main/java/com/velocitypowered/natives/compression/Java11VelocityCompressor.java
 index be3ed64e..cc450b1a 100644
 --- a/native/src/main/java/com/velocitypowered/natives/compression/Java11VelocityCompressor.java
@@ -779,10 +791,10 @@ index 97127d25..96084c96 100644
      this.inflater = new Inflater();
    }
 diff --git a/proxy/build.gradle b/proxy/build.gradle
-index e4e91469..3bfffc57 100644
+index e4e91469..f3e1fa88 100644
 --- a/proxy/build.gradle
 +++ b/proxy/build.gradle
-@@ -2,14 +2,20 @@ import com.github.jengelman.gradle.plugins.shadow.transformers.Log4j2PluginsCach
+@@ -2,14 +2,21 @@ import com.github.jengelman.gradle.plugins.shadow.transformers.Log4j2PluginsCach
  
  plugins {
      id 'java'
@@ -794,6 +806,7 @@ index e4e91469..3bfffc57 100644
 -apply from: '../gradle/checkstyle.gradle'
 +//apply from: '../gradle/checkstyle.gradle'
  apply plugin: 'com.github.johnrengelman.shadow'
++apply plugin: 'io.freefair.lombok' //BotFilter add lombok
  
  license {
 +    matching(includes: ['**/botfilter/**']) {
@@ -805,7 +818,7 @@ index e4e91469..3bfffc57 100644
      header = project.rootProject.file('HEADER.txt')
  }
  
-@@ -43,10 +49,10 @@ jar {
+@@ -43,10 +50,10 @@ jar {
  shadowJar {
      transform(Log4j2PluginsCacheFileTransformer)
  }
@@ -819,6 +832,20 @@ index e4e91469..3bfffc57 100644
  
  dependencies {
      // Note: we depend on the API twice, first the main sourceset, and then the annotation processor.
+@@ -92,13 +99,6 @@ dependencies {
+     testImplementation "org.junit.jupiter:junit-jupiter-api:${junitVersion}"
+     testImplementation "org.junit.jupiter:junit-jupiter-engine:${junitVersion}"
+ 
+-    //BotFilter add lombok
+-    compileOnly 'org.projectlombok:lombok:1.18.20'
+-    annotationProcessor 'org.projectlombok:lombok:1.18.20'
+-
+-    testCompileOnly 'org.projectlombok:lombok:1.18.20'
+-    testAnnotationProcessor 'org.projectlombok:lombok:1.18.20'
+-
+     implementation 'ru.leymooo:AnnotatedYAMLConfiguration-standalone:1.1-SNAPSHOT' //BotFilter
+ }
+ 
 diff --git a/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java b/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java
 index 8cf5adea..942a4869 100644
 --- a/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java
