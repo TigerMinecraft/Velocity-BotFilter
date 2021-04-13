@@ -1,4 +1,4 @@
-From 975d838484d5015e3ca34b446365cfda18ef03a4 Mon Sep 17 00:00:00 2001
+From e17eb0c2224b168fd2a211cedf130dde9ba3bd47 Mon Sep 17 00:00:00 2001
 From: Leymooo <vjatseslav.maspanov@gmail.com>
 Date: Sun, 4 Apr 2021 11:14:53 +0300
 Subject: [PATCH] [WIP] BotFilter
@@ -754,18 +754,6 @@ index 8b3632f9..7cf0f237 100644
    @Override
    public String toString() {
      return getVersionIntroducedIn();
-diff --git a/build.gradle b/build.gradle
-index 4c30f6a5..7caf911f 100644
---- a/build.gradle
-+++ b/build.gradle
-@@ -11,6 +11,7 @@ plugins {
-     id 'java'
-     id "com.github.spotbugs" version "4.7.0" apply false
-     id 'org.cadixdev.licenser' version '0.5.1' apply false
-+    id "io.freefair.lombok" version "6.0.0-m2" apply false //BotFilter add lombok
- }
- 
- allprojects {
 diff --git a/native/src/main/java/com/velocitypowered/natives/compression/Java11VelocityCompressor.java b/native/src/main/java/com/velocitypowered/natives/compression/Java11VelocityCompressor.java
 index be3ed64e..cc450b1a 100644
 --- a/native/src/main/java/com/velocitypowered/natives/compression/Java11VelocityCompressor.java
@@ -791,10 +779,10 @@ index 97127d25..96084c96 100644
      this.inflater = new Inflater();
    }
 diff --git a/proxy/build.gradle b/proxy/build.gradle
-index e4e91469..f3e1fa88 100644
+index e4e91469..837daf0d 100644
 --- a/proxy/build.gradle
 +++ b/proxy/build.gradle
-@@ -2,14 +2,21 @@ import com.github.jengelman.gradle.plugins.shadow.transformers.Log4j2PluginsCach
+@@ -2,14 +2,20 @@ import com.github.jengelman.gradle.plugins.shadow.transformers.Log4j2PluginsCach
  
  plugins {
      id 'java'
@@ -806,7 +794,6 @@ index e4e91469..f3e1fa88 100644
 -apply from: '../gradle/checkstyle.gradle'
 +//apply from: '../gradle/checkstyle.gradle'
  apply plugin: 'com.github.johnrengelman.shadow'
-+apply plugin: 'io.freefair.lombok' //BotFilter add lombok
  
  license {
 +    matching(includes: ['**/botfilter/**']) {
@@ -818,7 +805,7 @@ index e4e91469..f3e1fa88 100644
      header = project.rootProject.file('HEADER.txt')
  }
  
-@@ -43,10 +50,10 @@ jar {
+@@ -43,12 +49,19 @@ jar {
  shadowJar {
      transform(Log4j2PluginsCacheFileTransformer)
  }
@@ -831,8 +818,17 @@ index e4e91469..f3e1fa88 100644
 -}
  
  dependencies {
++    //BotFilter add lombok
++    compileOnly 'org.projectlombok:lombok:1.18.20'
++    annotationProcessor 'org.projectlombok:lombok:1.18.20'
++
++    testCompileOnly 'org.projectlombok:lombok:1.18.20'
++    testAnnotationProcessor 'org.projectlombok:lombok:1.18.20'
++
      // Note: we depend on the API twice, first the main sourceset, and then the annotation processor.
-@@ -92,13 +99,6 @@ dependencies {
+     implementation project(':velocity-api')
+     implementation project(':velocity-api').sourceSets.ap.output
+@@ -92,13 +105,6 @@ dependencies {
      testImplementation "org.junit.jupiter:junit-jupiter-api:${junitVersion}"
      testImplementation "org.junit.jupiter:junit-jupiter-engine:${junitVersion}"
  
@@ -4460,10 +4456,10 @@ index 00000000..d40e35c3
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/server/world/SimpleBlock.java b/proxy/src/main/java/ru/leymooo/botfilter/server/world/SimpleBlock.java
 new file mode 100644
-index 00000000..69a60cc3
+index 00000000..d4f12b42
 --- /dev/null
 +++ b/proxy/src/main/java/ru/leymooo/botfilter/server/world/SimpleBlock.java
-@@ -0,0 +1,209 @@
+@@ -0,0 +1,213 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -4498,7 +4494,6 @@ index 00000000..69a60cc3
 +import java.util.EnumSet;
 +import java.util.Map;
 +import java.util.Set;
-+import lombok.RequiredArgsConstructor;
 +import org.jetbrains.annotations.NotNull;
 +
 +public class SimpleBlock {
@@ -4627,9 +4622,7 @@ index 00000000..69a60cc3
 +    }
 +  }
 +
-+  @RequiredArgsConstructor
 +  public static class BlockInfo {
-+
 +
 +    @NotNull
 +    private final Version version;
@@ -4643,6 +4636,13 @@ index 00000000..69a60cc3
 +
 +    public BlockInfo(@NotNull Version version, @NotNull BlockInfo fallback) {
 +      this(version, (short) 0, (byte) 0, fallback);
++    }
++
++    public BlockInfo(@NotNull Version version, short id, byte data, BlockInfo fallback) {
++      this.version = version;
++      this.id = id;
++      this.data = data;
++      this.fallback = fallback;
 +    }
 +
 +    public @NotNull Version getVersion() {

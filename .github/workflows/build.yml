@@ -19,6 +19,14 @@ jobs:
               uses: actions/setup-java@v1
               with:
                   java-version: ${{ matrix.java }}
+            - name: Cache gradle
+              uses: actions/cache@v2
+              with:
+                path: |
+                  ~/.gradle/caches
+                  ~/.gradle/wrapper
+                key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+                restore-keys: ${{ runner.os }}-gradle-
             - name: Patch and build
               run: |
                   git config --global user.email "no-reply@github.com"
