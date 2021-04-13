@@ -1,4 +1,4 @@
-From 90d63b7a728085f9cdd33922b1ba36beed61563e Mon Sep 17 00:00:00 2001
+From 975d838484d5015e3ca34b446365cfda18ef03a4 Mon Sep 17 00:00:00 2001
 From: Leymooo <vjatseslav.maspanov@gmail.com>
 Date: Sun, 4 Apr 2021 11:14:53 +0300
 Subject: [PATCH] [WIP] BotFilter
@@ -1366,10 +1366,10 @@ index 00000000..ed81f310
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/BotFilterProtocol.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/BotFilterProtocol.java
 new file mode 100644
-index 00000000..ff56dac2
+index 00000000..c0fa7210
 --- /dev/null
 +++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/BotFilterProtocol.java
-@@ -0,0 +1,73 @@
+@@ -0,0 +1,81 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -1404,6 +1404,7 @@ index 00000000..ff56dac2
 +import ru.leymooo.botfilter.protocol.packet.JoinGame;
 +import ru.leymooo.botfilter.protocol.packet.PlayerPositionAndLook;
 +import ru.leymooo.botfilter.protocol.packet.world.ChunkData;
++import ru.leymooo.botfilter.protocol.packet.world.UpdateLight;
 +
 +public class BotFilterProtocol {
 +
@@ -1439,6 +1440,13 @@ index 00000000..ff56dac2
 +        map(0x22, ProtocolVersion.MINECRAFT_1_15, true),
 +        map(0x21, ProtocolVersion.MINECRAFT_1_16, true),
 +        map(0x20, ProtocolVersion.MINECRAFT_1_16_2, true));
++
++    StateRegistry.BotFilter.clientbound.register(
++        UpdateLight.class, UpdateLight::new,
++        map(0x24, ProtocolVersion.MINECRAFT_1_14, true),
++        map(0x25, ProtocolVersion.MINECRAFT_1_15, true),
++        map(0xF0, ProtocolVersion.MINECRAFT_1_16, true)); //RANDOM ID
++
 +
 +  }
 +
@@ -1503,7 +1511,7 @@ index 00000000..ab71265c
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/cache/MultiplePreparedPackets.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/cache/MultiplePreparedPackets.java
 new file mode 100644
-index 00000000..d7e49bbe
+index 00000000..2f17a6da
 --- /dev/null
 +++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/cache/MultiplePreparedPackets.java
 @@ -0,0 +1,99 @@
@@ -1582,7 +1590,7 @@ index 00000000..d7e49bbe
 +  public void write(MinecraftConnection connection, boolean onlineMode) {
 +    if (onlineMode) {
 +      for (PreparedPacket preparedPacket : onlineModePackets) {
-+        connection.delayedWrite(preparedPacket);
++        preparedPacket.selfWrite(connection, false);
 +      }
 +    } else {
 +      connection.delayedWrite(this);
@@ -1683,10 +1691,10 @@ index 00000000..d1fd4e88
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/cache/PreparedPacket.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/cache/PreparedPacket.java
 new file mode 100644
-index 00000000..a60575f2
+index 00000000..fd590290
 --- /dev/null
 +++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/cache/PreparedPacket.java
-@@ -0,0 +1,206 @@
+@@ -0,0 +1,217 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -1708,6 +1716,7 @@ index 00000000..a60575f2
 +package ru.leymooo.botfilter.protocol.cache;
 +
 +import com.velocitypowered.api.network.ProtocolVersion;
++import com.velocitypowered.proxy.connection.MinecraftConnection;
 +import com.velocitypowered.proxy.protocol.MinecraftPacket;
 +import com.velocitypowered.proxy.protocol.ProtocolUtils;
 +import com.velocitypowered.proxy.protocol.ProtocolUtils.Direction;
@@ -1793,14 +1802,24 @@ index 00000000..a60575f2
 +  }
 +
 +  public ByteBuf getBuffer(ProtocolVersion version) {
-+    ByteBufHolder holder =  offlineMode.get(version);
++    ByteBufHolder holder = offlineMode.get(version);
 +    return holder == null ? null : holder.byteBuf.retainedSlice();
 +  }
 +
 +
 +  public int getBufferLength(ProtocolVersion version) {
-+    ByteBufHolder holder =  offlineMode.get(version);
++    ByteBufHolder holder = offlineMode.get(version);
 +    return holder == null ? 0 : holder.byteBuf.readableBytes();
++  }
++
++  public void selfWrite(MinecraftConnection mc, boolean flush) {
++    if (offlineMode.containsKey(mc.getProtocolVersion())) {
++      if (flush) {
++        mc.write(this);
++      } else {
++        mc.delayedWrite(this);
++      }
++    }
 +  }
 +
 +  public boolean isFinished() {
@@ -1895,10 +1914,10 @@ index 00000000..a60575f2
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/cache/netty/MultiplePreparedPacketsEncoder.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/cache/netty/MultiplePreparedPacketsEncoder.java
 new file mode 100644
-index 00000000..c8e57358
+index 00000000..e2f4e09b
 --- /dev/null
 +++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/cache/netty/MultiplePreparedPacketsEncoder.java
-@@ -0,0 +1,70 @@
+@@ -0,0 +1,72 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -1920,6 +1939,7 @@ index 00000000..c8e57358
 +package ru.leymooo.botfilter.protocol.cache.netty;
 +
 +import com.velocitypowered.api.network.ProtocolVersion;
++import io.netty.buffer.ByteBuf;
 +import io.netty.channel.ChannelHandler.Sharable;
 +import io.netty.channel.ChannelHandlerContext;
 +import io.netty.handler.codec.MessageToMessageEncoder;
@@ -1950,7 +1970,8 @@ index 00000000..c8e57358
 +  @Override
 +  protected void encode(ChannelHandlerContext ctx, MultiplePreparedPackets msg, List<Object> out)
 +      throws Exception {
-+    out.add(msg.getBuffer(protocolVersion));
++    ByteBuf buf = msg.getBuffer(protocolVersion);
++    out.add(buf);
 +  }
 +
 +  /*
@@ -1971,10 +1992,10 @@ index 00000000..c8e57358
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/cache/netty/PreparedPacketEncoder.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/cache/netty/PreparedPacketEncoder.java
 new file mode 100644
-index 00000000..1c0489e9
+index 00000000..6906d621
 --- /dev/null
 +++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/cache/netty/PreparedPacketEncoder.java
-@@ -0,0 +1,77 @@
+@@ -0,0 +1,78 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -2003,11 +2024,9 @@ index 00000000..1c0489e9
 +import io.netty.buffer.ByteBuf;
 +import io.netty.channel.ChannelHandler.Sharable;
 +import io.netty.channel.ChannelHandlerContext;
-+import io.netty.handler.codec.MessageToByteEncoder;
 +import io.netty.handler.codec.MessageToMessageEncoder;
 +import java.util.List;
 +import lombok.RequiredArgsConstructor;
-+import ru.leymooo.botfilter.protocol.cache.ByteBufCreator;
 +import ru.leymooo.botfilter.protocol.cache.PreparedPacket;
 +
 +@Sharable
@@ -2026,13 +2045,16 @@ index 00000000..1c0489e9
 +      encoders.put(version, false, new PreparedPacketEncoder(version, false));
 +    }
 +  }
++
 +  private final ProtocolVersion protocolVersion;
 +  private final boolean onlineMode;
 +
 +
 +  @Override
-+  protected void encode(ChannelHandlerContext ctx, PreparedPacket msg, List<Object> list) throws Exception {
-+    list.add(msg.getBuffer(protocolVersion));
++  protected void encode(ChannelHandlerContext ctx, PreparedPacket msg, List<Object> out)
++      throws Exception {
++    ByteBuf buf = msg.getBuffer(protocolVersion);
++    out.add(buf);
 +  }
 +
 +  /*
@@ -2263,12 +2285,12 @@ index 00000000..658cd5da
 +    return handler.handle(this);
 +  }
 +}
-diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/Chunk17to112.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/Chunk17to112.java
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/Chunk17to115.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/Chunk17to115.java
 new file mode 100644
-index 00000000..2ef93c27
+index 00000000..1b33f22d
 --- /dev/null
-+++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/Chunk17to112.java
-@@ -0,0 +1,127 @@
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/Chunk17to115.java
+@@ -0,0 +1,215 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -2298,30 +2320,95 @@ index 00000000..2ef93c27
 +import java.util.Arrays;
 +import java.util.List;
 +import java.util.zip.Deflater;
-+import ru.leymooo.botfilter.protocol.registry.Biome;
++import net.kyori.adventure.nbt.CompoundBinaryTag;
 +import ru.leymooo.botfilter.protocol.util.NetworkSection;
++import ru.leymooo.botfilter.protocol.util.mcprotocollib.FlexibleStorage;
++import ru.leymooo.botfilter.server.world.SimpleBlock;
 +import ru.leymooo.botfilter.server.world.SimpleChunk;
 +import ru.leymooo.botfilter.server.world.SimpleChunk.ChunkSection;
 +
 +/**
-+ * 1.7 - 1.12.2
++ * 1.7 - 1.15.2
 + */
-+public class Chunk17to112 extends ChunkData {
++public class Chunk17to115 extends ChunkData {
 +
 +  private final SimpleChunk simpleChunk;
++  private final List<NetworkSection> networkSections = new ArrayList<>(16);
 +
-+  public Chunk17to112(SimpleChunk simpleChunk) {
++  public Chunk17to115(SimpleChunk simpleChunk) {
 +    super(simpleChunk.getX(), simpleChunk.getZ());
 +    this.simpleChunk = simpleChunk;
 +  }
 +
 +  @Override
 +  public void encode(ByteBuf buf, Direction direction, ProtocolVersion version) {
++
++    //write data to out buffer
++    buf.writeInt(getX());
++    buf.writeInt(getZ());
++    buf.writeBoolean(true); //Full chunk
++
++    ByteBuf data = Unpooled.buffer(getInitialDataSize(version));
++    int mask = writeChunkData(data, version);
++
++    if (version.isAfterOrEq(ProtocolVersion.MINECRAFT_1_9)) {
++      buf.ensureWritable(1024 * 4 + ((36 * 8) * 2) + 150);
++      ProtocolUtils.writeVarInt(buf, mask);
++
++      if (version.isAfterOrEq(ProtocolVersion.MINECRAFT_1_14)) {
++        ProtocolUtils.writeCompoundTag(buf, buildHeightMap());
++      }
++      if (version.isAfterOrEq(ProtocolVersion.MINECRAFT_1_15)) {
++        writeChunkBiomes(buf, version);
++      }
++      buf.ensureWritable(data.readableBytes() + 5 + 1);
++      ProtocolUtils.writeVarInt(buf, data.readableBytes());
++      buf.writeBytes(data);
++      if (version.isAfterOrEq(ProtocolVersion.MINECRAFT_1_9_4)) {
++        ProtocolUtils.writeVarInt(buf, 0); // no tile entities nbts
++      }
++    } else {
++      buf.writeShort(mask); //Number of chunks
++      if (version.isBefore(ProtocolVersion.MINECRAFT_1_8)) {
++        write17(buf, data);
++      } else {
++        ProtocolUtils.writeVarInt(buf, data.readableBytes());
++        buf.writeBytes(data);
++      }
++    }
++    data.release();
++
++  }
++
++  private CompoundBinaryTag buildHeightMap() {
++    FlexibleStorage surface = new FlexibleStorage(9, 256);
++    FlexibleStorage motionBlocking = new FlexibleStorage(9, 256);
++
++    for (int y = 0; y < 256; y++) {
++      for (int x = 0; x < 16; x++) {
++        for (int z = 0; z < 16; z++) {
++          SimpleBlock block = simpleChunk.getBlock(x, y, z);
++          if (!block.isAir()) {
++            surface.set(x + z * 16, y + 1);
++          }
++          if (block.isMotionBlocking()) {
++            motionBlocking.set(x + z * 16, y + 1);
++          }
++        }
++      }
++    }
++    return CompoundBinaryTag.builder().putLongArray("MOTION_BLOCKING", motionBlocking.getData())
++        .putLongArray("WORLD_SURFACE", surface.getData()).build();
++  }
++
++
++  private int writeChunkData(ByteBuf data, ProtocolVersion version) {
++    networkSections.clear();
 +    ChunkSection[] sections = simpleChunk.getSections();
 +    List<NetworkSection> nSections = new ArrayList<>(16);
 +    boolean skyLight = simpleChunk.getInstance().getDimension().isHasSkylight();
 +    int bitMask = 0;
-+    int dataLength = 256; //Biomes
++    int dataLength = data.capacity();
 +    //Calculate bitMask, data length and convert chunk sections to network sections
 +    for (int s = 0; s < sections.length; s++) {
 +      ChunkSection section = sections[s];
@@ -2333,47 +2420,70 @@ index 00000000..2ef93c27
 +      }
 +    }
 +
++    data.ensureWritable(dataLength); //resize buffer
 +    //Write chunk sections data to buffer
-+    ByteBuf data = Unpooled.buffer(dataLength);
-+    for (int pass = 0; pass < 5; pass++) {
++    for (int pass = 0; pass < 4; pass++) {
 +      int finalPass = pass;
 +      nSections.forEach(n -> n.writeData(data, finalPass));
 +    }
++    if (version.isBefore(ProtocolVersion.MINECRAFT_1_15)) {
++      writeChunkBiomes(data, version);
++    }
++    return bitMask;
++  }
 +
-+    //Write biomes to buffer
-+    byte[] biomes = new byte[256];
-+    Arrays.fill(biomes, (byte) Biome.PLAINTS.id);
++  private void writeChunkBiomes(ByteBuf data, ProtocolVersion version) {
++    Object biomes = createBiomesArray(version);
++    if (version.isBefore(ProtocolVersion.MINECRAFT_1_15)) {
++      if (version.isBefore(ProtocolVersion.MINECRAFT_1_13)) {
++        data.ensureWritable(256);
++        data.writeBytes((byte[]) biomes);
++      } else {
++        data.ensureWritable(256 * 4);
++        for (byte b : (byte[]) biomes) {
++          data.writeInt(b);
++        }
++      }
++    } else {
++      data.ensureWritable(1024 * 4);
++      for (int i : ((int[]) biomes)) {
++        data.writeInt(i);
++      }
++    }
++  }
++
++  private Object createBiomesArray(ProtocolVersion version) {
++    ChunkSection[] sections = simpleChunk.getSections();
++    Object biomes = null;
++    if (version.isBefore(ProtocolVersion.MINECRAFT_1_15)) {
++      biomes = new byte[256];
++      Arrays.fill((byte[]) biomes, (byte) 1);
++    } else {
++      biomes = new int[1024];
++      Arrays.fill((int[]) biomes, 1);
++    }
 +    for (int s = 0; s < sections.length; s++) {
 +      ChunkSection section = sections[s];
 +      if (section != null) {
-+        Arrays.fill(biomes, s * 16, (s * 16) + 16, (byte) section.getBiome().id);
++        int biome = section.getBiome().id;
++        if (version.isBefore(ProtocolVersion.MINECRAFT_1_15)) {
++          Arrays.fill((byte[]) biomes, s * 16, (s * 16) + 16, (byte) biome);
++        } else {
++          Arrays.fill((int[]) biomes, s * 16 * 4, (s * 16 * 4) + 64, biome);
++        }
 +      }
 +    }
-+    data.writeBytes(biomes);
++    return biomes;
++  }
 +
-+    //write data to out buffer
-+    buf.writeInt(getX());
-+    buf.writeInt(getZ());
-+    buf.writeBoolean(true); //Full chunk
-+
-+    if (version.isAfterOrEq(ProtocolVersion.MINECRAFT_1_9)) {
-+      ProtocolUtils.writeVarInt(buf, bitMask);
-+      ProtocolUtils.writeVarInt(buf, data.readableBytes());
-+      buf.writeBytes(data);
-+      if (version.isAfterOrEq(ProtocolVersion.MINECRAFT_1_9_4)) {
-+        ProtocolUtils.writeVarInt(buf, 0); // no tile entities nbts
-+      }
-+    } else {
-+      buf.writeShort(bitMask); //Number of chunks
-+      if (version.isBefore(ProtocolVersion.MINECRAFT_1_8)) {
-+        write17(buf, data);
-+      } else {
-+        ProtocolUtils.writeVarInt(buf, data.readableBytes());
-+        buf.writeBytes(data);
-+      }
++  private int getInitialDataSize(ProtocolVersion version) {
++    if (version.isBefore(ProtocolVersion.MINECRAFT_1_13)) {
++      return 256;
 +    }
-+    data.release();
-+
++    if (version.isBeforeOrEq(ProtocolVersion.MINECRAFT_1_14_4)) {
++      return 256 * 4;
++    }
++    return 0;
 +  }
 +
 +  private void write17(ByteBuf out, ByteBuf data) {
@@ -2566,6 +2676,115 @@ index 00000000..56504f2e
 +    }
 +  }
 +
++}
+diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/UpdateLight.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/UpdateLight.java
+new file mode 100644
+index 00000000..0b138b81
+--- /dev/null
++++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/UpdateLight.java
+@@ -0,0 +1,103 @@
++/*
++ * Velocity-BotFilter
++ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package ru.leymooo.botfilter.protocol.packet.world;
++
++import com.velocitypowered.api.network.ProtocolVersion;
++import com.velocitypowered.proxy.protocol.MinecraftPacket;
++import com.velocitypowered.proxy.protocol.ProtocolUtils;
++import com.velocitypowered.proxy.protocol.ProtocolUtils.Direction;
++import io.netty.buffer.ByteBuf;
++import ru.leymooo.botfilter.protocol.util.mcprotocollib.NibbleArray3d;
++import ru.leymooo.botfilter.server.world.SimpleChunk;
++import ru.leymooo.botfilter.server.world.SimpleChunk.ChunkSection;
++
++public class UpdateLight implements MinecraftPacket {
++
++  private final SimpleChunk chunk;
++  private final NibbleArray3d[] skyLight = new NibbleArray3d[18];
++  private final NibbleArray3d[] blockLight = new NibbleArray3d[18];
++  private int skyLightMask = 0;
++  private int blockLightMask = 0;
++  private int emptySkyLightMask = 0;
++  private int emptyBlockLightMask = 0;
++
++  public UpdateLight() {
++    chunk = null;
++  }
++
++  public UpdateLight(SimpleChunk simpleChunk) {
++    this.chunk = simpleChunk;
++    prepareLighting();
++  }
++
++  @Override
++  public void encode(ByteBuf buf, Direction direction, ProtocolVersion version) {
++    ProtocolUtils.writeVarInt(buf, chunk.getX());
++    ProtocolUtils.writeVarInt(buf, chunk.getZ());
++
++    ProtocolUtils.writeVarInt(buf, skyLightMask);
++    ProtocolUtils.writeVarInt(buf, blockLightMask);
++    ProtocolUtils.writeVarInt(buf, emptySkyLightMask);
++    ProtocolUtils.writeVarInt(buf, emptyBlockLightMask);
++
++    for (NibbleArray3d array3d : skyLight) {
++      if (array3d != null) {
++        ProtocolUtils.writeByteArray(buf, array3d.getData());
++      }
++    }
++    for (NibbleArray3d nibbleArray3d : blockLight) {
++      if (nibbleArray3d != null) {
++        ProtocolUtils.writeByteArray(buf, nibbleArray3d.getData());
++      }
++    }
++  }
++
++  private void prepareLighting() {
++    ChunkSection[] chunkSections = chunk.getSections();
++    ChunkSection[] allSections = new ChunkSection[18];
++    System.arraycopy(chunkSections, 0, allSections, 1, chunkSections.length);
++    allSections[0] = chunk.getExtraLightSections()[0];
++    allSections[17] = chunk.getExtraLightSections()[1];
++
++    for (int i = 0; i < allSections.length; i++) {
++      ChunkSection section = allSections[i];
++      if (section == null || !section.hasAnyData()) {
++        emptySkyLightMask |= 1 << i;
++        emptyBlockLightMask |= 1 << i;
++      } else {
++        NibbleArray3d sectionSkyLight = section.getSkyLight();
++        if (sectionSkyLight != null) {
++          skyLightMask |= 1 << i;
++          skyLight[i] = sectionSkyLight;
++        } else {
++          emptySkyLightMask |= 1 << i;
++        }
++
++        NibbleArray3d sectionBlockSky = section.getBlockLight();
++        if (sectionBlockSky != null) {
++          blockLightMask |= 1 << i;
++          blockLight[i] = sectionBlockSky;
++        } else {
++          emptyBlockLightMask |= 1 << i;
++        }
++      }
++    }
++
++  }
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/registry/Biome.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/registry/Biome.java
 new file mode 100644
@@ -3042,10 +3261,10 @@ index 00000000..66a72191
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/NetworkSection.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/NetworkSection.java
 new file mode 100644
-index 00000000..69f8f2d4
+index 00000000..4dac7ffc
 --- /dev/null
 +++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/NetworkSection.java
-@@ -0,0 +1,252 @@
+@@ -0,0 +1,292 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -3074,6 +3293,7 @@ index 00000000..69f8f2d4
 +import lombok.Getter;
 +import ru.leymooo.botfilter.protocol.util.mcprotocollib.BlockStorage;
 +import ru.leymooo.botfilter.protocol.util.mcprotocollib.ByteArray3d;
++import ru.leymooo.botfilter.protocol.util.mcprotocollib.FlexibleStorage;
 +import ru.leymooo.botfilter.protocol.util.mcprotocollib.NibbleArray3d;
 +import ru.leymooo.botfilter.protocol.util.mcprotocollib.ShortArray3d;
 +import ru.leymooo.botfilter.server.world.SimpleBlock;
@@ -3101,8 +3321,9 @@ index 00000000..69f8f2d4
 +  abstract void setBlock(int x, int y, int z, SimpleBlock block);
 +
 +  protected void create() {
-+    for (int x = 0; x < 16; x++) {
-+      for (int y = 0; y < 16; y++) {
++
++    for (int y = 0; y < 16; y++) {
++      for (int x = 0; x < 16; x++) {
 +        for (int z = 0; z < 16; z++) {
 +          setBlockLight(x, y, z, getSection().getBlockLightAt(x, y, z));
 +          setSkyLight(x, y, z, getSection().getSkyLightAt(x, y, z));
@@ -3122,16 +3343,12 @@ index 00000000..69f8f2d4
 +      return new NetworkSection1_7(section, sky);
 +    } else if (version.isBeforeOrEq(ProtocolVersion.MINECRAFT_1_8)) {
 +      return new NetworkSection1_8(section, sky);
-+    } else if (version.isBeforeOrEq(ProtocolVersion.MINECRAFT_1_9_4)) {
-+      return new NetworkSection1_9(section, sky, Version.MINECRAFT_1_9);
-+    } else if (version.isBeforeOrEq(ProtocolVersion.MINECRAFT_1_10)) {
-+      return new NetworkSection1_9(section, sky, Version.MINECRAFT_1_10);
-+    } else if (version.isBeforeOrEq(ProtocolVersion.MINECRAFT_1_11_1)) {
-+      return new NetworkSection1_9(section, sky, Version.MINECRAFT_1_11);
++    } else if (version.isBeforeOrEq(ProtocolVersion.MINECRAFT_1_13_2)) {
++      return new NetworkSection1_9(section, sky, Version.map(version));
 +    } else {
-+      return new NetworkSection1_9(section, sky, Version.MINECRAFT_1_12);
++      return new NetworkSection1_14(section, sky, Version.map(version));
 +    }
-+
++    // return null;
 +  }
 +
 +  public static class NetworkSection1_7 extends NetworkSection {
@@ -3297,13 +3514,55 @@ index 00000000..69f8f2d4
 +      return dataLength;
 +    }
 +  }
++
++  public static class NetworkSection1_14 extends NetworkSection {
++
++    private final BlockStorage blocks;
++    private int nonAirBlocks = 0;
++    public NetworkSection1_14(ChunkSection section, boolean skyLight, Version version) {
++      super(section, skyLight);
++      this.blocks = new BlockStorage(version);
++      create();
++    }
++
++    @Override
++    void setBlockLight(int x, int y, int z, byte blockLight) {
++    }
++
++    @Override
++    void setSkyLight(int x, int y, int z, byte skyLight) {
++    }
++
++    @Override
++    void setBlock(int x, int y, int z, SimpleBlock block) {
++      blocks.set(x, y, z, block);
++      if (!block.isAir()) {
++        nonAirBlocks++;
++      }
++    }
++
++    @Override
++    public void writeData(ByteBuf data, int pass) {
++      if (pass == 0) {
++        data.writeShort(nonAirBlocks);
++        blocks.write(data);
++      }
++    }
++
++    @Override
++    public int getDataLength() {
++      int dataLength = 0;
++      dataLength += blocks.calculateMaxSize();
++      return dataLength;
++    }
++  }
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/mcprotocollib/BlockStorage.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/mcprotocollib/BlockStorage.java
 new file mode 100644
-index 00000000..4545e3c4
+index 00000000..0c914d99
 --- /dev/null
 +++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/mcprotocollib/BlockStorage.java
-@@ -0,0 +1,136 @@
+@@ -0,0 +1,151 @@
 +/*
 + * This file is part of MCProtocolLib, licensed under the MIT License (MIT).
 + *
@@ -3360,9 +3619,16 @@ index 00000000..4545e3c4
 +  public void write(ByteBuf out) {
 +    out.writeByte(this.bitsPerEntry);
 +
-+    ProtocolUtils.writeVarInt(out, this.states.size());
-+    for (SimpleBlock state : this.states) {
-+      writeBlockState(out, state, version);
++
++    if (this.bitsPerEntry > 8) {
++      if (version.isBefore(Version.MINECRAFT_1_13)) {
++        ProtocolUtils.writeVarInt(out, 0);
++      }
++    } else {
++      ProtocolUtils.writeVarInt(out, this.states.size());
++      for (SimpleBlock state : this.states) {
++        writeBlockState(out, state, version);
++      }
 +    }
 +
 +    long[] data = this.storage.getData();
@@ -3399,7 +3665,7 @@ index 00000000..4545e3c4
 +        if (this.bitsPerEntry > 8) {
 +          oldStates = new ArrayList<SimpleBlock>(this.states);
 +          this.states.clear();
-+          this.bitsPerEntry = 13;
++          this.bitsPerEntry = version.isBefore(Version.MINECRAFT_1_13) ? 13 : 14;
 +        }
 +
 +        FlexibleStorage oldStorage = this.storage;
@@ -3428,8 +3694,12 @@ index 00000000..4545e3c4
 +  }
 +
 +  private static void writeBlockState(ByteBuf out, SimpleBlock blockState, Version version) {
-+    ProtocolUtils
-+        .writeVarInt(out, (blockState.getId(version) << 4) | (blockState.getData(version) & 0xF));
++    if (version.isBefore(Version.MINECRAFT_1_13)) {
++      ProtocolUtils
++          .writeVarInt(out, (blockState.getId(version) << 4) | (blockState.getData(version) & 0xF));
++    } else {
++      ProtocolUtils.writeVarInt(out, blockState.getId(version));
++    }
 +  }
 +
 +  private static int index(int x, int y, int z) {
@@ -3437,7 +3707,11 @@ index 00000000..4545e3c4
 +  }
 +
 +  private static int stateToRaw(SimpleBlock state, Version version) {
-+    return (state.getId(version) << 4) | (state.getData(version) & 0xF);
++    if (version.isBefore(Version.MINECRAFT_1_13)) {
++      return (state.getId(version) << 4) | (state.getData(version) & 0xF);
++    } else {
++      return state.getId(version);
++    }
 +  }
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/mcprotocollib/ByteArray3d.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/util/mcprotocollib/ByteArray3d.java
@@ -3904,10 +4178,10 @@ index 00000000..ed366429
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/server/ServerPackets.java b/proxy/src/main/java/ru/leymooo/botfilter/server/ServerPackets.java
 new file mode 100644
-index 00000000..cda952e3
+index 00000000..f6b269d4
 --- /dev/null
 +++ b/proxy/src/main/java/ru/leymooo/botfilter/server/ServerPackets.java
-@@ -0,0 +1,154 @@
+@@ -0,0 +1,197 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -3945,9 +4219,10 @@ index 00000000..cda952e3
 +import ru.leymooo.botfilter.protocol.cache.PreparedPacket;
 +import ru.leymooo.botfilter.protocol.packet.JoinGame;
 +import ru.leymooo.botfilter.protocol.packet.PlayerPositionAndLook;
-+import ru.leymooo.botfilter.protocol.packet.world.Chunk17to112;
++import ru.leymooo.botfilter.protocol.packet.world.Chunk17to115;
 +import ru.leymooo.botfilter.protocol.packet.world.ChunkData;
 +import ru.leymooo.botfilter.protocol.packet.world.EmptyChunk113;
++import ru.leymooo.botfilter.protocol.packet.world.UpdateLight;
 +import ru.leymooo.botfilter.protocol.registry.Biome;
 +import ru.leymooo.botfilter.protocol.registry.Dimension;
 +import ru.leymooo.botfilter.protocol.registry.DimensionRegistry;
@@ -3960,7 +4235,7 @@ index 00000000..cda952e3
 +  private final PacketCompressor packetCompressor;
 +  private final VirtualServer virtualServer;
 +  private VirtualWorld virtualWorld;
-+  //JoinGame + PlayerPosAndLook + Chunks
++  //JoinGame +  Chunks + Light + PlayerPosAndLook
 +  private MultiplePreparedPackets spawnPackets;
 +  private PreparedPacket<Disconnect> alreadyConnected;
 +
@@ -3977,10 +4252,37 @@ index 00000000..cda952e3
 +    this.virtualWorld = new VirtualWorld(Dimension.OVERWORLD,
 +        new DimensionInfo(Dimension.OVERWORLD.getKey(), Dimension.OVERWORLD.getKey(), true, false));
 +    virtualWorld.setSkyLight(0, 60, 0, (byte) 1); //1.7 workaround
++
++    /*
++    for (int x = 0; x < 16; x++) {
++      for (int z = 0; z < 16; z++) {
++        virtualWorld.setBlock(x, 40, z, SimpleBlock.GRANITE);
++        virtualWorld.setBlock(x, 60, z, SimpleBlock.GRANITE);
++      }
++    }
++    for (int x = 1; x < 15; x++) {
++      for (int z = 1; z < 15; z++) {
++        if (x % 3 == 0 && z % 3 == 0) {
++          virtualWorld.setBlock(x, 40, z, SimpleBlock.BARRIER);
++          virtualWorld.setBlockLight(x, 41, z, (byte) 15);
++        }
++      }
++    }
++    for (int x = 0; x < 16; x++) {
++      for (int y = 40; y <= 60; y++) {
++        virtualWorld.setBlock(x, y, 0, SimpleBlock.GRANITE);
++        virtualWorld.setBlock(0, y, x, SimpleBlock.GRANITE);
++        virtualWorld.setBlock(x, y, 15, SimpleBlock.GRANITE);
++        virtualWorld.setBlock(15, y, x, SimpleBlock.GRANITE);
++      }
++    }
++     */
++
 +    List<PreparedPacket> preparedPackets = new ArrayList<>();
 +    preparedPackets.add(createJoinGamePacket());
-+    preparedPackets.add(createPlayerPosAndLookPacket());
 +    preparedPackets.addAll(createChunksPackets());
++    preparedPackets.addAll(createUpdateLightPackets());
++    preparedPackets.add(createPlayerPosAndLookPacket());
 +    spawnPackets = new MultiplePreparedPackets(preparedPackets.toArray(new PreparedPacket[0]));
 +    alreadyConnected = createDisconnectPacket("&cAlready connected", StateRegistry.LOGIN);
 +    virtualWorld = null;
@@ -4019,11 +4321,26 @@ index 00000000..cda952e3
 +
 +  private PreparedPacket<ChunkData> createChunkDataPacket(SimpleChunk chunk) {
 +    PreparedPacket<ChunkData> chunkPacket = new PreparedPacket<>();
-+    chunkPacket.prepare(new Chunk17to112(chunk), ProtocolVersion.MINECRAFT_1_7_2,
-+        ProtocolVersion.MINECRAFT_1_12_2);
++    chunkPacket.prepare(new Chunk17to115(chunk), ProtocolVersion.MINECRAFT_1_7_2,
++        ProtocolVersion.MINECRAFT_1_15_2);
 +    chunkPacket.prepare(new EmptyChunk113(chunk.getX(), chunk.getZ()),
-+        ProtocolVersion.MINECRAFT_1_13);
++        ProtocolVersion.MINECRAFT_1_16);
 +    return processCompression(chunkPacket);
++  }
++
++  private List<PreparedPacket<UpdateLight>> createUpdateLightPackets() {
++    List<PreparedPacket<UpdateLight>> packets = new ArrayList<>();
++    for (SimpleChunk chunk : virtualWorld.getChunks()) {
++      packets.add(createUpdateLightPacket(chunk));
++    }
++    return packets;
++  }
++
++  private PreparedPacket<UpdateLight> createUpdateLightPacket(SimpleChunk chunk) {
++    PreparedPacket<UpdateLight> lightPacket = new PreparedPacket<>();
++    lightPacket.prepare(new UpdateLight(chunk), ProtocolVersion.MINECRAFT_1_14,
++        ProtocolVersion.MINECRAFT_1_15_2);
++    return processCompression(lightPacket);
 +  }
 +
 +  private PreparedPacket<Disconnect> createDisconnectPacket(String message,
@@ -4143,10 +4460,10 @@ index 00000000..d40e35c3
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/server/world/SimpleBlock.java b/proxy/src/main/java/ru/leymooo/botfilter/server/world/SimpleBlock.java
 new file mode 100644
-index 00000000..9af97fa9
+index 00000000..69a60cc3
 --- /dev/null
 +++ b/proxy/src/main/java/ru/leymooo/botfilter/server/world/SimpleBlock.java
-@@ -0,0 +1,132 @@
+@@ -0,0 +1,209 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -4169,35 +4486,48 @@ index 00000000..9af97fa9
 +
 +import static ru.leymooo.botfilter.server.world.SimpleBlock.BlockInfo.fallback;
 +import static ru.leymooo.botfilter.server.world.SimpleBlock.BlockInfo.info;
++import static ru.leymooo.botfilter.server.world.SimpleBlock.Version.MINECRAFT_1_13;
++import static ru.leymooo.botfilter.server.world.SimpleBlock.Version.MINECRAFT_1_13_1;
++import static ru.leymooo.botfilter.server.world.SimpleBlock.Version.MINECRAFT_1_14;
 +import static ru.leymooo.botfilter.server.world.SimpleBlock.Version.MINECRAFT_1_7;
 +import static ru.leymooo.botfilter.server.world.SimpleBlock.Version.MINECRAFT_1_8;
 +
++import com.velocitypowered.api.network.ProtocolVersion;
++import java.util.Arrays;
 +import java.util.EnumMap;
 +import java.util.EnumSet;
 +import java.util.Map;
++import java.util.Set;
 +import lombok.RequiredArgsConstructor;
 +import org.jetbrains.annotations.NotNull;
 +
 +public class SimpleBlock {
 +
-+  public static final SimpleBlock AIR = nonSolid(info(MINECRAFT_1_7, 0));
++  public static final SimpleBlock AIR = air(info(MINECRAFT_1_7, 0));
 +  public static final SimpleBlock STONE = solid(info(MINECRAFT_1_7, 1));
 +  public static final SimpleBlock GRANITE = solid(fallback(MINECRAFT_1_7, STONE),
-+      info(MINECRAFT_1_8, 1, 1));
-+  public static final SimpleBlock GLASS = solid(info(MINECRAFT_1_7, 20));
++      info(MINECRAFT_1_8, 1, 1), info(MINECRAFT_1_13, 2));
++  public static final SimpleBlock GLASS = solid(info(MINECRAFT_1_7, 20),
++      info(MINECRAFT_1_13, 230));
++  public static final SimpleBlock TORCH = nonSolid(false, info(MINECRAFT_1_7, 50, 14)
++      , info(MINECRAFT_1_13, 1130), info(MINECRAFT_1_13_1, 1131), info(MINECRAFT_1_14, 1134));
 +  public static final SimpleBlock BARRIER = solid(fallback(MINECRAFT_1_7, GLASS),
-+      info(MINECRAFT_1_8, 166));
-+  public static final SimpleBlock TORCH = nonSolid(info(MINECRAFT_1_7, 50, 14));
++      info(MINECRAFT_1_8, 166), info(MINECRAFT_1_13, 6493), info(MINECRAFT_1_13_1, 6494),
++      info(MINECRAFT_1_14, 7000));
 +
 +  private final Map<Version, BlockInfo> blockInfos = new EnumMap<>(Version.class);
 +  private final boolean solid;
++  private final boolean air;
++  private final boolean motionBlocking; //1.14+
 +
-+  public SimpleBlock(boolean solid, BlockInfo... blockInfos) {
++  public SimpleBlock(boolean solid, boolean air, boolean motionBlocking, BlockInfo... blockInfos) {
++    this.motionBlocking = motionBlocking;
 +    for (BlockInfo info : blockInfos) {
 +      for (Version version : EnumSet.range(info.version, Version.MINECRAFT_1_16)) {
 +        this.blockInfos.put(version, info);
 +      }
 +    }
++    this.air = air;
 +    this.solid = solid;
 +  }
 +
@@ -4213,32 +4543,96 @@ index 00000000..9af97fa9
 +    return solid;
 +  }
 +
-+  public static SimpleBlock solid(BlockInfo... infos) {
-+    return new SimpleBlock(true, infos);
++  public boolean isAir() {
++    return air;
 +  }
 +
++  public boolean isMotionBlocking() {
++    return motionBlocking;
++  }
++
++  public static SimpleBlock solid(BlockInfo... infos) {
++    return solid(true, infos);
++  }
++
++  public static SimpleBlock solid(boolean motionBlocking, BlockInfo... infos) {
++    return new SimpleBlock(true, false, motionBlocking, infos);
++  }
++
++
 +  public static SimpleBlock nonSolid(BlockInfo... infos) {
-+    return new SimpleBlock(false, infos);
++    return nonSolid(true, infos);
++  }
++
++  public static SimpleBlock nonSolid(boolean motionBlocking, BlockInfo... infos) {
++    return new SimpleBlock(false, false, motionBlocking, infos);
++  }
++
++  public static SimpleBlock air(BlockInfo... infos) {
++    return new SimpleBlock(false, true, false, infos);
 +  }
 +
 +  public enum Version {
-+    MINECRAFT_1_7,
-+    MINECRAFT_1_8,
-+    MINECRAFT_1_9,
-+    MINECRAFT_1_10,
-+    MINECRAFT_1_11,
-+    MINECRAFT_1_12,
-+    MINECRAFT_1_13,
-+    MINECRAFT_1_14,
-+    MINECRAFT_1_15,
-+    MINECRAFT_1_16
++    MINECRAFT_1_7(ProtocolVersion.MINECRAFT_1_7_2, ProtocolVersion.MINECRAFT_1_7_6),
++    MINECRAFT_1_8(ProtocolVersion.MINECRAFT_1_8),
++    MINECRAFT_1_9(EnumSet.range(ProtocolVersion.MINECRAFT_1_9, ProtocolVersion.MINECRAFT_1_9_4)),
++    MINECRAFT_1_10(ProtocolVersion.MINECRAFT_1_10),
++    MINECRAFT_1_11(ProtocolVersion.MINECRAFT_1_11, ProtocolVersion.MINECRAFT_1_11_1),
++    MINECRAFT_1_12(EnumSet.range(ProtocolVersion.MINECRAFT_1_12, ProtocolVersion.MINECRAFT_1_12_2)),
++    MINECRAFT_1_13(ProtocolVersion.MINECRAFT_1_13),
++    MINECRAFT_1_13_1(ProtocolVersion.MINECRAFT_1_13_1, ProtocolVersion.MINECRAFT_1_13_2),
++    MINECRAFT_1_14(EnumSet.range(ProtocolVersion.MINECRAFT_1_14, ProtocolVersion.MINECRAFT_1_14_4)),
++    MINECRAFT_1_15(EnumSet.range(ProtocolVersion.MINECRAFT_1_15, ProtocolVersion.MINECRAFT_1_15_2)),
++    MINECRAFT_1_16(EnumSet.range(ProtocolVersion.MINECRAFT_1_16, ProtocolVersion.MINECRAFT_1_16_4));
++
++    private static EnumMap<ProtocolVersion, Version> mcVersionToBlockVersions = new EnumMap<>(
++        ProtocolVersion.class);
++
++    static {
++      for (Version version : Version.values()) {
++        for (ProtocolVersion protocolVersion : version.versions) {
++          mcVersionToBlockVersions.put(protocolVersion, version);
++        }
++      }
++    }
++
++    private Set<ProtocolVersion> versions;
++
++    Version(ProtocolVersion... versions) {
++      this.versions = EnumSet.copyOf(Arrays.asList(versions));
++    }
++
++    Version(Set<ProtocolVersion> versions) {
++      this.versions = versions;
++    }
++
++    public boolean isBefore(Version other) {
++      return this.compareTo(other) < 0;
++    }
++
++    public boolean isBeforeOrEq(Version other) {
++      return this.compareTo(other) <= 0;
++    }
++
++    public boolean isAfter(Version other) {
++      return this.compareTo(other) > 0;
++    }
++
++    public boolean isAfterOrEq(Version other) {
++      return this.compareTo(other) >= 0;
++    }
++
++    public static Version map(ProtocolVersion protocolVersion) {
++      return mcVersionToBlockVersions.get(protocolVersion);
++    }
 +  }
 +
 +  @RequiredArgsConstructor
 +  public static class BlockInfo {
 +
 +
-+    @NotNull private final Version version;
++    @NotNull
++    private final Version version;
 +    private final short id;
 +    private final byte data;
 +    private final BlockInfo fallback;
@@ -4281,10 +4675,10 @@ index 00000000..9af97fa9
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/server/world/SimpleChunk.java b/proxy/src/main/java/ru/leymooo/botfilter/server/world/SimpleChunk.java
 new file mode 100644
-index 00000000..a1b5019a
+index 00000000..63e231f7
 --- /dev/null
 +++ b/proxy/src/main/java/ru/leymooo/botfilter/server/world/SimpleChunk.java
-@@ -0,0 +1,223 @@
+@@ -0,0 +1,243 @@
 +/*
 + * Velocity-BotFilter
 + * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
@@ -4328,6 +4722,10 @@ index 00000000..a1b5019a
 +  @SuppressFBWarnings("EI_EXPOSE_REP")
 +  @Getter
 +  private final ChunkSection[] sections = new ChunkSection[16];
++  //For light update packet; y= -16;-1, 256;271
++  @SuppressFBWarnings("EI_EXPOSE_REP")
++  @Getter
++  private final ChunkSection[] extraLightSections = new ChunkSection[2];
 +
 +  public SimpleChunk(VirtualWorld instance, int x, int z) {
 +    this.instance = instance;
@@ -4356,19 +4754,19 @@ index 00000000..a1b5019a
 +  }
 +
 +  public byte getBlockLight(int x, int y, int z) {
-+    return sectionAction(y, (s) -> s.getBlockLightAt(x, y % 16, z), () -> (byte) 0);
++    return lightSectionAction(y, (s) -> s.getBlockLightAt(x, y % 16, z), () -> (byte) 0);
 +  }
 +
 +  public void setBlockLight(int x, int y, int z, byte light) {
-+    getSection(y).setBlockLightAt(x, y % 16, z, light);
++    getSectionForLighting(y, true).setBlockLightAt(x, y % 16, z, light);
 +  }
 +
 +  public byte getSkyLight(int x, int y, int z) {
-+    return sectionAction(y, (s) -> s.getSkyLightAt(x, y % 16, z), () -> (byte) 0);
++    return lightSectionAction(y, (s) -> s.getSkyLightAt(x, y % 16, z), () -> (byte) 0);
 +  }
 +
 +  public void setSkyLight(int x, int y, int z, byte light) {
-+    getSection(y).setSkyLightAt(x, y % 16, z, light);
++    getSectionForLighting(y, true).setSkyLightAt(x, y % 16, z, light);
 +  }
 +
 +  private ChunkSection getSection(int y) {
@@ -4388,6 +4786,32 @@ index 00000000..a1b5019a
 +    return function.apply(section);
 +  }
 +
++  private <T> T lightSectionAction(int y, Function<ChunkSection, T> function, Supplier<T> ifNull) {
++    ChunkSection section = getSectionForLighting(y, false);
++    if (section == null) {
++      return ifNull.get();
++    }
++    return function.apply(section);
++  }
++
++  private ChunkSection getSectionForLighting(int y, boolean create) {
++    ChunkSection result = null;
++    if (y < 0) {
++      result = extraLightSections[0];
++      if (create && result == null) {
++        result = (extraLightSections[0] = new ChunkSection());
++      }
++      return result;
++    }
++    if (y >= 256) {
++      result = extraLightSections[1];
++      if (create && result == null) {
++        result = (extraLightSections[1] = new ChunkSection());
++      }
++      return result;
++    }
++    return create ? getSection(y) : sections[getSectionIndex(y)];
++  }
 +
 +  private static int getSectionIndex(int y) {
 +    return y / 16;
@@ -4398,13 +4822,12 @@ index 00000000..a1b5019a
 +  public static class ChunkSection {
 +
 +    private SimpleBlock[] blocks;
-+    private NibbleArray3d blockLight;
-+    private NibbleArray3d skyLight;
++    @Getter private NibbleArray3d blockLight;
++    @Getter private NibbleArray3d skyLight;
 +    @Getter
 +    @Setter
 +    @NonNull
 +    private Biome biome = Biome.PLAINTS;
-+    @Getter private short solidBlocks = 0;
 +    @Getter private short blocksCount = 0;
 +
 +    public ChunkSection(@NonNull Biome biome) {
@@ -4432,29 +4855,20 @@ index 00000000..a1b5019a
 +        setBlockAt(index, null);
 +        return;
 +      }
-+
 +      if (blocks == null) {
 +        if (block == null) {
 +          return;
 +        }
 +        blocks = new SimpleBlock[MAX_BLOCKS_PER_SECTION];
 +      }
-+
 +      SimpleBlock old = blocks[index];
 +      blocks[index] = block;
-+
 +      if (old != null) {
 +        blocksCount--;
-+        if (old.isSolid()) {
-+          solidBlocks--;
-+        }
 +      }
 +
 +      if (block != null) {
 +        blocksCount++;
-+        if (block.isSolid()) {
-+          solidBlocks++;
-+        }
 +      }
 +    }
 +
