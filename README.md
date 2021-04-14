@@ -10,4 +10,4 @@ Work in progress. Its not ready and cant be used at this moment
 
 [Velocity](https://github.com/VelocityPowered/Velocity) - [GPLv3](https://github.com/VelocityPowered/Velocity/blob/dev/1.1.0/LICENSE)
 
-[WaterFall](https://github.com/PaperMC/Waterfall) (scripts) - [MIT](https://github.com/PaperMC/Waterfall/blob/master/LICENSE.txt)
+[Waterfall](https://github.com/PaperMC/Waterfall) (scripts) - [MIT](https://github.com/PaperMC/Waterfall/blob/master/LICENSE.txt)
