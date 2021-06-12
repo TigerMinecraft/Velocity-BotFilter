@@ -1,4 +1,4 @@
-From 0b5e44d803c10a1377ec18c9ceb74d88a0920157 Mon Sep 17 00:00:00 2001
+From f7a5aabb95a78f2d00af3403130020c1ab68b4c3 Mon Sep 17 00:00:00 2001
 From: Leymooo <vjatseslav.maspanov@gmail.com>
 Date: Sat, 3 Apr 2021 15:42:27 +0300
 Subject: [PATCH] Global ip rate limiter
@@ -23,10 +23,10 @@ index 0fa124f7..eaf0ff42 100644
     * Get the proxy favicon shown in the tablist.
     *
 diff --git a/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java b/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java
-index c7529ab3..8cf5adea 100644
+index 6f0a242d..0d005726 100644
 --- a/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java
 +++ b/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java
-@@ -221,7 +221,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
+@@ -223,7 +223,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
        servers.register(new ServerInfo(entry.getKey(), AddressUtil.parseAddress(entry.getValue())));
      }
  
@@ -36,7 +36,7 @@ index c7529ab3..8cf5adea 100644
      loadPlugins();
  
      // Go ahead and fire the proxy initialization event. We block since plugins should have a chance
-@@ -395,7 +396,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
+@@ -397,7 +398,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
            newConfiguration.getQueryPort());
      }
  
@@ -46,7 +46,7 @@ index c7529ab3..8cf5adea 100644
      this.configuration = newConfiguration;
      eventManager.fireAndForget(new ProxyReloadEvent());
      return true;
-@@ -522,7 +524,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
+@@ -524,7 +526,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
      return !(connectionsByName.containsKey(lowerName)
          || connectionsByUuid.containsKey(connection.getUniqueId()));
    }
@@ -56,37 +56,10 @@ index c7529ab3..8cf5adea 100644
     * Attempts to register the {@code connection} with the proxy.
     * @param connection the connection to register
 diff --git a/proxy/src/main/java/com/velocitypowered/proxy/config/VelocityConfiguration.java b/proxy/src/main/java/com/velocitypowered/proxy/config/VelocityConfiguration.java
-index 4bd717e3..e4b0c17c 100644
+index 7775bff7..3b2c5dc7 100644
 --- a/proxy/src/main/java/com/velocitypowered/proxy/config/VelocityConfiguration.java
 +++ b/proxy/src/main/java/com/velocitypowered/proxy/config/VelocityConfiguration.java
-@@ -17,9 +17,6 @@
- 
- package com.velocitypowered.proxy.config;
- 
--import com.electronwill.nightconfig.core.CommentedConfig;
--import com.electronwill.nightconfig.core.file.CommentedFileConfig;
--import com.electronwill.nightconfig.toml.TomlFormat;
- import com.google.common.base.MoreObjects;
- import com.google.common.collect.ImmutableList;
- import com.google.common.collect.ImmutableMap;
-@@ -28,16 +25,12 @@ import com.velocitypowered.api.proxy.config.ProxyConfig;
- import com.velocitypowered.api.util.Favicon;
- import com.velocitypowered.proxy.util.AddressUtil;
- import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
--import java.io.File;
- import java.io.IOException;
--import java.io.InputStream;
- import java.net.InetSocketAddress;
--import java.net.URL;
- import java.nio.charset.StandardCharsets;
- import java.nio.file.Files;
- import java.nio.file.Path;
- import java.nio.file.Paths;
--import java.nio.file.StandardCopyOption;
- import java.security.SecureRandom;
- import java.util.List;
- import java.util.Map;
-@@ -71,7 +64,7 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
+@@ -66,7 +66,7 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
  
    @Expose @Key("config-version") @Final
    @Comment("Config version. Do not change this")
@@ -95,7 +68,7 @@ index 4bd717e3..e4b0c17c 100644
  
    @Expose @Comment("What port should the proxy be bound to? By default,"
        + " we'll bind to all addresses on port 25565.")
-@@ -361,6 +354,12 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
+@@ -359,6 +359,12 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
      return advanced.getLoginRatelimit();
    }
  
@@ -108,7 +81,7 @@ index 4bd717e3..e4b0c17c 100644
    @Override
    public Optional<Favicon> getFavicon() {
      return Optional.ofNullable(favicon);
-@@ -450,11 +449,17 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
+@@ -448,11 +454,17 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
          .build();
  
      boolean exists = path.toFile().exists();
@@ -127,7 +100,7 @@ index 4bd717e3..e4b0c17c 100644
      }
      configuration.save();
      return configuration;
-@@ -475,7 +480,6 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
+@@ -473,7 +485,6 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
    }
  
    @Getter
@@ -135,7 +108,7 @@ index 4bd717e3..e4b0c17c 100644
    @ToString
    @NoArgsConstructor(access = AccessLevel.PRIVATE)
    private static class Servers implements ConfigurationSection {
-@@ -498,7 +502,6 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
+@@ -496,7 +507,6 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
    }
  
    @Getter
@@ -143,7 +116,7 @@ index 4bd717e3..e4b0c17c 100644
    @ToString
    @NoArgsConstructor(access = AccessLevel.PRIVATE)
    private static class Advanced implements ConfigurationSection {
-@@ -518,6 +521,10 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
+@@ -516,6 +526,10 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
          "By default, this is three seconds. Disable this by setting this to 0."})
      private int loginRatelimit = 3000;
  
@@ -175,10 +148,10 @@ index 2ce8f8db..c956b120 100644
      connection.setType(getHandshakeConnectionType(handshake));
  
 diff --git a/proxy/src/main/java/com/velocitypowered/proxy/connection/client/StatusSessionHandler.java b/proxy/src/main/java/com/velocitypowered/proxy/connection/client/StatusSessionHandler.java
-index d17a419d..08f9d5d0 100644
+index 792c5b45..b8e0895a 100644
 --- a/proxy/src/main/java/com/velocitypowered/proxy/connection/client/StatusSessionHandler.java
 +++ b/proxy/src/main/java/com/velocitypowered/proxy/connection/client/StatusSessionHandler.java
-@@ -213,6 +213,9 @@ public class StatusSessionHandler implements MinecraftSessionHandler {
+@@ -215,6 +215,9 @@ public class StatusSessionHandler implements MinecraftSessionHandler {
                VelocityServer.getPingGsonInstance(connection.getProtocolVersion())
                    .toJson(event.getPing(), json);
                connection.write(new StatusResponse(json));
@@ -189,7 +162,7 @@ index d17a419d..08f9d5d0 100644
              connection.eventLoop())
          .exceptionally((ex) -> {
 diff --git a/proxy/src/main/java/com/velocitypowered/proxy/network/ServerChannelInitializer.java b/proxy/src/main/java/com/velocitypowered/proxy/network/ServerChannelInitializer.java
-index 2c27b3fb..ff18ddc6 100644
+index 55f7d6f8..0a95adb0 100644
 --- a/proxy/src/main/java/com/velocitypowered/proxy/network/ServerChannelInitializer.java
 +++ b/proxy/src/main/java/com/velocitypowered/proxy/network/ServerChannelInitializer.java
 @@ -39,6 +39,7 @@ import io.netty.channel.Channel;
@@ -215,8 +188,8 @@ index 2c27b3fb..ff18ddc6 100644
 +    //BotFilter end
 +
      ch.pipeline()
-         .addLast(READ_TIMEOUT,
-             new ReadTimeoutHandler(this.server.getConfiguration().getReadTimeout(),
+         .addLast(LEGACY_PING_DECODER, new LegacyPingDecoder())
+         .addLast(FRAME_DECODER, new MinecraftVarintFrameDecoder())
 @@ -67,7 +78,7 @@ public class ServerChannelInitializer extends ChannelInitializer<Channel> {
      connection.setSessionHandler(new HandshakeSessionHandler(connection, this.server));
      ch.pipeline().addLast(Connections.HANDLER, connection);
