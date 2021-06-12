@@ -1,11 +1,11 @@
-From 60cd45196f0fc696f233d58d4a4634b34b8682a2 Mon Sep 17 00:00:00 2001
+From 464a27eb63b4cfd133865ae4c59994b0346b8349 Mon Sep 17 00:00:00 2001
 From: Leymooo <vjatseslav.maspanov@gmail.com>
 Date: Sat, 3 Apr 2021 15:28:49 +0300
 Subject: [PATCH] Switch from TOML config to YAML
 
 
 diff --git a/build.gradle b/build.gradle
-index 45a8ec42..c7c6d98b 100644
+index b7bef7eb..51000e2e 100644
 --- a/build.gradle
 +++ b/build.gradle
 @@ -9,7 +9,7 @@ buildscript {
@@ -18,10 +18,10 @@ index 45a8ec42..c7c6d98b 100644
  }
  
 diff --git a/proxy/build.gradle b/proxy/build.gradle
-index ebc6a162..e4e91469 100644
+index 70bb54f2..488d1b24 100644
 --- a/proxy/build.gradle
 +++ b/proxy/build.gradle
-@@ -98,6 +98,8 @@ dependencies {
+@@ -94,6 +94,8 @@ dependencies {
  
      testCompileOnly 'org.projectlombok:lombok:1.18.20'
      testAnnotationProcessor 'org.projectlombok:lombok:1.18.20'
@@ -60,10 +60,10 @@ index 64addd7a..0dc680cd 100644
        metrics.addCustomChart(
            new SingleLineChart("players", server::getPlayerCount)
 diff --git a/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java b/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java
-index 725e8403..6f0a242d 100644
+index 34b7d966..0aa865a5 100644
 --- a/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java
 +++ b/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java
-@@ -245,13 +245,13 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
+@@ -232,13 +232,13 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
        this.cm.queryBind(configuration.getBind().getHostString(), configuration.getQueryPort());
      }
  
@@ -79,7 +79,7 @@ index 725e8403..6f0a242d 100644
        configuration = VelocityConfiguration.read(configPath);
  
        if (!configuration.validate()) {
-@@ -261,7 +261,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
+@@ -248,7 +248,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
          System.exit(1);
        }
      } catch (Exception e) {
@@ -88,7 +88,7 @@ index 725e8403..6f0a242d 100644
        LogManager.shutdown();
        System.exit(1);
      }
-@@ -320,10 +320,10 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
+@@ -307,10 +307,10 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     * Reloads the proxy's configuration.
     *
     * @return {@code true} if successful, {@code false} if we can't read the configuration
@@ -192,7 +192,7 @@ index 00000000..3e5a3a67
 +
 +}
 diff --git a/proxy/src/main/java/com/velocitypowered/proxy/config/VelocityConfiguration.java b/proxy/src/main/java/com/velocitypowered/proxy/config/VelocityConfiguration.java
-index 07469379..7775bff7 100644
+index e55b1019..9b6d06d7 100644
 --- a/proxy/src/main/java/com/velocitypowered/proxy/config/VelocityConfiguration.java
 +++ b/proxy/src/main/java/com/velocitypowered/proxy/config/VelocityConfiguration.java
 @@ -17,11 +17,6 @@
@@ -238,7 +238,7 @@ index 07469379..7775bff7 100644
  import net.kyori.adventure.text.Component;
  import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
  import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
-@@ -56,61 +51,94 @@ import org.apache.logging.log4j.LogManager;
+@@ -55,61 +50,94 @@ import org.apache.logging.log4j.LogManager;
  import org.apache.logging.log4j.Logger;
  import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
  import org.checkerframework.checker.nullness.qual.Nullable;
@@ -381,7 +381,7 @@ index 07469379..7775bff7 100644
    }
  
    /**
-@@ -144,7 +172,7 @@ public class VelocityConfiguration implements ProxyConfig {
+@@ -143,7 +171,7 @@ public class VelocityConfiguration implements ProxyConfig {
          break;
        case MODERN:
        case BUNGEEGUARD:
@@ -390,7 +390,7 @@ index 07469379..7775bff7 100644
            logger.error("You don't have a forwarding secret set. This is required for security.");
            valid = false;
          }
-@@ -173,7 +201,7 @@ public class VelocityConfiguration implements ProxyConfig {
+@@ -172,7 +200,7 @@ public class VelocityConfiguration implements ProxyConfig {
        }
      }
  
@@ -399,7 +399,7 @@ index 07469379..7775bff7 100644
        if (entry.getValue().isEmpty()) {
          logger.error("Forced host '{}' does not contain any servers", entry.getKey());
          valid = false;
-@@ -253,7 +281,7 @@ public class VelocityConfiguration implements ProxyConfig {
+@@ -252,7 +280,7 @@ public class VelocityConfiguration implements ProxyConfig {
  
    @Override
    public boolean shouldQueryShowPlugins() {
@@ -407,8 +407,8 @@ index 07469379..7775bff7 100644
 +    return query.isShowPlugins();
    }
  
-   /**
-@@ -298,7 +326,7 @@ public class VelocityConfiguration implements ProxyConfig {
+   @Override
+@@ -287,7 +315,7 @@ public class VelocityConfiguration implements ProxyConfig {
    }
  
    public byte[] getForwardingSecret() {
@@ -417,7 +417,7 @@ index 07469379..7775bff7 100644
    }
  
    @Override
-@@ -313,7 +341,7 @@ public class VelocityConfiguration implements ProxyConfig {
+@@ -302,7 +330,7 @@ public class VelocityConfiguration implements ProxyConfig {
  
    @Override
    public Map<String, List<String>> getForcedHosts() {
@@ -426,7 +426,7 @@ index 07469379..7775bff7 100644
    }
  
    @Override
-@@ -359,10 +387,6 @@ public class VelocityConfiguration implements ProxyConfig {
+@@ -348,10 +376,6 @@ public class VelocityConfiguration implements ProxyConfig {
      return advanced.tcpFastOpen;
    }
  
@@ -437,7 +437,7 @@ index 07469379..7775bff7 100644
    public PingPassthroughMode getPingPassthrough() {
      return pingPassthrough;
    }
-@@ -418,85 +442,20 @@ public class VelocityConfiguration implements ProxyConfig {
+@@ -407,85 +431,20 @@ public class VelocityConfiguration implements ProxyConfig {
    @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE",
        justification = "I looked carefully and there's no way SpotBugs is right.")
    public static VelocityConfiguration read(Path path) throws IOException {
@@ -533,7 +533,7 @@ index 07469379..7775bff7 100644
    }
  
    private static String generateRandomString(int length) {
-@@ -513,335 +472,139 @@ public class VelocityConfiguration implements ProxyConfig {
+@@ -502,335 +461,139 @@ public class VelocityConfiguration implements ProxyConfig {
      return onlineModeKickExistingPlayers;
    }
  

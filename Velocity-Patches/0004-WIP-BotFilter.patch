@@ -1,4 +1,4 @@
-From b60c1aa5e6fb1d4516fa48512f8c820e139ccc2d Mon Sep 17 00:00:00 2001
+From f719c1feab602860659fa31bfa8b97b4bacf53b8 Mon Sep 17 00:00:00 2001
 From: Leymooo <vjatseslav.maspanov@gmail.com>
 Date: Sun, 4 Apr 2021 11:14:53 +0300
 Subject: [PATCH] [WIP] BotFilter
@@ -754,23 +754,11 @@ index 0bbdc45b..6c88c603 100644
    @Override
    public String toString() {
      return getVersionIntroducedIn();
-diff --git a/native/src/main/java/com/velocitypowered/natives/compression/Java11VelocityCompressor.java b/native/src/main/java/com/velocitypowered/natives/compression/Java11VelocityCompressor.java
-index be3ed64e..cc450b1a 100644
---- a/native/src/main/java/com/velocitypowered/natives/compression/Java11VelocityCompressor.java
-+++ b/native/src/main/java/com/velocitypowered/natives/compression/Java11VelocityCompressor.java
-@@ -66,6 +66,7 @@ public class Java11VelocityCompressor implements VelocityCompressor {
-   private boolean disposed = false;
- 
-   private Java11VelocityCompressor(int level) {
-+    level = Math.min(9, level); //BotFilter
-     this.deflater = new Deflater(level);
-     this.inflater = new Inflater();
-   }
 diff --git a/native/src/main/java/com/velocitypowered/natives/compression/JavaVelocityCompressor.java b/native/src/main/java/com/velocitypowered/natives/compression/JavaVelocityCompressor.java
-index 97127d25..96084c96 100644
+index e9809f2a..37b994ba 100644
 --- a/native/src/main/java/com/velocitypowered/natives/compression/JavaVelocityCompressor.java
 +++ b/native/src/main/java/com/velocitypowered/natives/compression/JavaVelocityCompressor.java
-@@ -37,6 +37,7 @@ public class JavaVelocityCompressor implements VelocityCompressor {
+@@ -38,6 +38,7 @@ public class JavaVelocityCompressor implements VelocityCompressor {
    private boolean disposed = false;
  
    private JavaVelocityCompressor(int level) {
@@ -779,7 +767,7 @@ index 97127d25..96084c96 100644
      this.inflater = new Inflater();
    }
 diff --git a/proxy/build.gradle b/proxy/build.gradle
-index e4e91469..837daf0d 100644
+index 488d1b24..74f5f665 100644
 --- a/proxy/build.gradle
 +++ b/proxy/build.gradle
 @@ -2,14 +2,20 @@ import com.github.jengelman.gradle.plugins.shadow.transformers.Log4j2PluginsCach
@@ -805,7 +793,7 @@ index e4e91469..837daf0d 100644
      header = project.rootProject.file('HEADER.txt')
  }
  
-@@ -43,12 +49,19 @@ jar {
+@@ -37,12 +43,19 @@ jar {
  shadowJar {
      transform(Log4j2PluginsCacheFileTransformer)
  }
@@ -828,7 +816,7 @@ index e4e91469..837daf0d 100644
      // Note: we depend on the API twice, first the main sourceset, and then the annotation processor.
      implementation project(':velocity-api')
      implementation project(':velocity-api').sourceSets.ap.output
-@@ -92,13 +105,6 @@ dependencies {
+@@ -88,13 +101,6 @@ dependencies {
      testImplementation "org.junit.jupiter:junit-jupiter-api:${junitVersion}"
      testImplementation "org.junit.jupiter:junit-jupiter-engine:${junitVersion}"
  
@@ -852,10 +840,10 @@ index 00000000..a284c48a
 +config.stopBubbling = true
 +lombok.extern.findbugs.addSuppressFBWarnings = true
 diff --git a/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java b/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java
-index 0d005726..7615651d 100644
+index d087d9c8..11f9751c 100644
 --- a/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java
 +++ b/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java
-@@ -103,6 +103,7 @@ import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+@@ -99,6 +99,7 @@ import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
  import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
  import org.checkerframework.checker.nullness.qual.NonNull;
  import org.checkerframework.checker.nullness.qual.Nullable;
@@ -863,7 +851,7 @@ index 0d005726..7615651d 100644
  
  public class VelocityServer implements ProxyServer, ForwardingAudience {
  
-@@ -142,6 +143,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
+@@ -138,6 +139,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
    private final VelocityEventManager eventManager;
    private final VelocityScheduler scheduler;
    private final VelocityChannelRegistrar channelRegistrar = new VelocityChannelRegistrar();
@@ -871,7 +859,7 @@ index 0d005726..7615651d 100644
  
    VelocityServer(final ProxyOptions options) {
      pluginManager = new VelocityPluginManager(this);
-@@ -219,6 +221,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
+@@ -206,6 +208,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
  
      this.doStartupConfigLoad();
  
@@ -880,7 +868,7 @@ index 0d005726..7615651d 100644
      for (Map.Entry<String, String> entry : configuration.getServers().entrySet()) {
        servers.register(new ServerInfo(entry.getKey(), AddressUtil.parseAddress(entry.getValue())));
      }
-@@ -682,6 +686,11 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
+@@ -665,6 +669,11 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
      return bossBarManager;
    }
  
@@ -1141,18 +1129,10 @@ index 7115bb8b..7b2184d9 100644
    default int expectedMaxLength(ByteBuf buf, ProtocolUtils.Direction direction,
        ProtocolVersion version) {
 diff --git a/proxy/src/main/java/com/velocitypowered/proxy/protocol/StateRegistry.java b/proxy/src/main/java/com/velocitypowered/proxy/protocol/StateRegistry.java
-index 8e787539..49b1001d 100644
+index a65946e0..78a7d864 100644
 --- a/proxy/src/main/java/com/velocitypowered/proxy/protocol/StateRegistry.java
 +++ b/proxy/src/main/java/com/velocitypowered/proxy/protocol/StateRegistry.java
-@@ -79,6 +79,7 @@ import java.util.Map;
- import java.util.Objects;
- import java.util.function.Supplier;
- import org.checkerframework.checker.nullness.qual.Nullable;
-+import ru.leymooo.botfilter.protocol.BotFilterProtocol;
- 
- public enum StateRegistry {
- 
-@@ -296,7 +297,7 @@ public enum StateRegistry {
+@@ -297,7 +297,7 @@ public enum StateRegistry {
        clientbound.register(LoginPluginMessage.class, LoginPluginMessage::new,
            map(0x04, MINECRAFT_1_13, false));
      }
@@ -1161,7 +1141,7 @@ index 8e787539..49b1001d 100644
  
    public static final int STATUS_ID = 1;
    public static final int LOGIN_ID = 2;
-@@ -322,7 +323,8 @@ public enum StateRegistry {
+@@ -323,7 +323,8 @@ public enum StateRegistry {
        this.versions = Collections.unmodifiableMap(mutableVersions);
      }
  
@@ -1171,7 +1151,7 @@ index 8e787539..49b1001d 100644
        ProtocolRegistry registry = versions.get(version);
        if (registry == null) {
          if (fallback) {
-@@ -333,7 +335,8 @@ public enum StateRegistry {
+@@ -334,7 +335,8 @@ public enum StateRegistry {
        return registry;
      }
  
@@ -1181,7 +1161,7 @@ index 8e787539..49b1001d 100644
          PacketMapping... mappings) {
        if (mappings.length == 0) {
          throw new IllegalArgumentException("At least one mapping must be provided.");
-@@ -419,7 +422,7 @@ public enum StateRegistry {
+@@ -420,7 +422,7 @@ public enum StateRegistry {
        }
  
        /**
@@ -1190,7 +1170,7 @@ index 8e787539..49b1001d 100644
         *
         * @param packet the packet to look up
         * @return the packet ID
-@@ -435,6 +438,23 @@ public enum StateRegistry {
+@@ -436,6 +438,23 @@ public enum StateRegistry {
          }
          return id;
        }
@@ -1214,26 +1194,28 @@ index 8e787539..49b1001d 100644
      }
    }
  
-@@ -490,7 +510,8 @@ public enum StateRegistry {
-    * @param encodeOnly When true packet decoding will be disabled
+@@ -492,7 +511,8 @@ public enum StateRegistry {
     * @return PacketMapping with the provided arguments
     */
+   @SuppressFBWarnings({"UPM_UNCALLED_PRIVATE_METHOD"})
 -  private static PacketMapping map(int id, ProtocolVersion version, boolean encodeOnly) {
 +  //BotFilter public
 +  public static PacketMapping map(int id, ProtocolVersion version, boolean encodeOnly) {
      return map(id, version, null, encodeOnly);
    }
  
-@@ -503,7 +524,8 @@ public enum StateRegistry {
+@@ -505,8 +525,9 @@ public enum StateRegistry {
     * @param lastValidProtocolVersion Last version this Mapping is valid at
     * @return PacketMapping with the provided arguments
     */
 -  private static PacketMapping map(int id, ProtocolVersion version,
+-          ProtocolVersion lastValidProtocolVersion, boolean encodeOnly) {
 +  //BotFilter public
 +  public static PacketMapping map(int id, ProtocolVersion version,
-           ProtocolVersion lastValidProtocolVersion, boolean encodeOnly) {
++      ProtocolVersion lastValidProtocolVersion, boolean encodeOnly) {
      return new PacketMapping(id, version, lastValidProtocolVersion, encodeOnly);
    }
+ 
 diff --git a/proxy/src/main/java/com/velocitypowered/proxy/protocol/netty/MinecraftCipherEncoder.java b/proxy/src/main/java/com/velocitypowered/proxy/protocol/netty/MinecraftCipherEncoder.java
 index b4fd027e..c513da9d 100644
 --- a/proxy/src/main/java/com/velocitypowered/proxy/protocol/netty/MinecraftCipherEncoder.java
@@ -3254,227 +3236,6 @@ index 00000000..6a7bad7f
 +
 +  }
 +
-+}
-diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/Chunk17to115.old b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/Chunk17to115.old
-new file mode 100644
-index 00000000..f717e42a
---- /dev/null
-+++ b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/Chunk17to115.old
-@@ -0,0 +1,215 @@
-+/*
-+ * Velocity-BotFilter
-+ * Copyright (C) 2021  Vjatšeslav Maspanov <Leymooo>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU Affero General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU Affero General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU Affero General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+package ru.leymooo.botfilter.protocol.packet.world;
-+
-+import com.velocitypowered.api.network.ProtocolVersion;
-+import com.velocitypowered.proxy.protocol.ProtocolUtils;
-+import com.velocitypowered.proxy.protocol.ProtocolUtils.Direction;
-+import io.netty.buffer.ByteBuf;
-+import io.netty.buffer.Unpooled;
-+import java.util.ArrayList;
-+import java.util.Arrays;
-+import java.util.List;
-+import java.util.zip.Deflater;
-+import net.kyori.adventure.nbt.CompoundBinaryTag;
-+import ru.leymooo.botfilter.protocol.util.NetworkSection;
-+import ru.leymooo.botfilter.protocol.util.mcprotocollib.FlexibleStorage;
-+import ru.leymooo.botfilter.server.world.SimpleBlock;
-+import ru.leymooo.botfilter.server.world.chunk.SimpleChunk;
-+import ru.leymooo.botfilter.server.world.chunk.SimpleChunk.ChunkSection;
-+
-+/**
-+ * 1.7 - 1.15.2
-+ */
-+public class Chunk17to115 extends ChunkData {
-+
-+  private final SimpleChunk simpleChunk;
-+  private final List<NetworkSection> networkSections = new ArrayList<>(16);
-+
-+  public Chunk17to115(SimpleChunk simpleChunk) {
-+    super(simpleChunk.getX(), simpleChunk.getZ());
-+    this.simpleChunk = simpleChunk;
-+  }
-+
-+  @Override
-+  public void encode(ByteBuf buf, Direction direction, ProtocolVersion version) {
-+
-+    //write data to out buffer
-+    buf.writeInt(getX());
-+    buf.writeInt(getZ());
-+    buf.writeBoolean(true); //Full chunk
-+
-+    ByteBuf data = Unpooled.buffer(getInitialDataSize(version));
-+    int mask = writeChunkData(data, version);
-+
-+    if (version.isAfterOrEq(ProtocolVersion.MINECRAFT_1_9)) {
-+      buf.ensureWritable(1024 * 4 + ((36 * 8) * 2) + 150);
-+      ProtocolUtils.writeVarInt(buf, mask);
-+
-+      if (version.isAfterOrEq(ProtocolVersion.MINECRAFT_1_14)) {
-+        ProtocolUtils.writeCompoundTag(buf, buildHeightMap());
-+      }
-+      if (version.isAfterOrEq(ProtocolVersion.MINECRAFT_1_15)) {
-+        writeChunkBiomes(buf, version);
-+      }
-+      buf.ensureWritable(data.readableBytes() + 5 + 1);
-+      ProtocolUtils.writeVarInt(buf, data.readableBytes());
-+      buf.writeBytes(data);
-+      if (version.isAfterOrEq(ProtocolVersion.MINECRAFT_1_9_4)) {
-+        ProtocolUtils.writeVarInt(buf, 0); // no tile entities nbts
-+      }
-+    } else {
-+      buf.writeShort(mask); //Number of chunks
-+      if (version.isBefore(ProtocolVersion.MINECRAFT_1_8)) {
-+        write17(buf, data);
-+      } else {
-+        ProtocolUtils.writeVarInt(buf, data.readableBytes());
-+        buf.writeBytes(data);
-+      }
-+    }
-+    data.release();
-+
-+  }
-+
-+  private CompoundBinaryTag buildHeightMap() {
-+    FlexibleStorage surface = new FlexibleStorage(9, 256);
-+    FlexibleStorage motionBlocking = new FlexibleStorage(9, 256);
-+
-+    for (int y = 0; y < 256; y++) {
-+      for (int x = 0; x < 16; x++) {
-+        for (int z = 0; z < 16; z++) {
-+          SimpleBlock block = simpleChunk.getBlock(x, y, z);
-+          if (!block.isAir()) {
-+            surface.set(x + z * 16, y + 1);
-+          }
-+          if (block.isMotionBlocking()) {
-+            motionBlocking.set(x + z * 16, y + 1);
-+          }
-+        }
-+      }
-+    }
-+    return CompoundBinaryTag.builder().putLongArray("MOTION_BLOCKING", motionBlocking.getData())
-+        .putLongArray("WORLD_SURFACE", surface.getData()).build();
-+  }
-+
-+
-+  private int writeChunkData(ByteBuf data, ProtocolVersion version) {
-+    networkSections.clear();
-+    ChunkSection[] sections = simpleChunk.getSections();
-+    List<NetworkSection> nSections = new ArrayList<>(16);
-+    boolean skyLight = simpleChunk.getInstance().getDimension().isHasSkylight();
-+    int bitMask = 0;
-+    int dataLength = data.capacity();
-+    //Calculate bitMask, data length and convert chunk sections to network sections
-+    for (int s = 0; s < sections.length; s++) {
-+      ChunkSection section = sections[s];
-+      if (section != null && section.hasAnyData()) {
-+        bitMask |= 1 << s;
-+        NetworkSection networkSection = NetworkSection.create(version, section, skyLight);
-+        dataLength += networkSection.getDataLength();
-+        nSections.add(networkSection);
-+      }
-+    }
-+
-+    data.ensureWritable(dataLength); //resize buffer
-+    //Write chunk sections data to buffer
-+    for (int pass = 0; pass < 4; pass++) {
-+      int finalPass = pass;
-+      nSections.forEach(n -> n.writeData(data, finalPass));
-+    }
-+    if (version.isBefore(ProtocolVersion.MINECRAFT_1_15)) {
-+      writeChunkBiomes(data, version);
-+    }
-+    return bitMask;
-+  }
-+
-+  private void writeChunkBiomes(ByteBuf data, ProtocolVersion version) {
-+    Object biomes = createBiomesArray(version);
-+    if (version.isBefore(ProtocolVersion.MINECRAFT_1_15)) {
-+      if (version.isBefore(ProtocolVersion.MINECRAFT_1_13)) {
-+        data.ensureWritable(256);
-+        data.writeBytes((byte[]) biomes);
-+      } else {
-+        data.ensureWritable(256 * 4);
-+        for (byte b : (byte[]) biomes) {
-+          data.writeInt(b);
-+        }
-+      }
-+    } else {
-+      data.ensureWritable(1024 * 4);
-+      for (int i : ((int[]) biomes)) {
-+        data.writeInt(i);
-+      }
-+    }
-+  }
-+
-+  private Object createBiomesArray(ProtocolVersion version) {
-+    ChunkSection[] sections = simpleChunk.getSections();
-+    Object biomes = null;
-+    if (version.isBefore(ProtocolVersion.MINECRAFT_1_15)) {
-+      biomes = new byte[256];
-+      Arrays.fill((byte[]) biomes, (byte) 1);
-+    } else {
-+      biomes = new int[1024];
-+      Arrays.fill((int[]) biomes, 1);
-+    }
-+    for (int s = 0; s < sections.length; s++) {
-+      ChunkSection section = sections[s];
-+      if (section != null) {
-+        int biome = section.getBiome().id;
-+        if (version.isBefore(ProtocolVersion.MINECRAFT_1_15)) {
-+          Arrays.fill((byte[]) biomes, s * 16, (s * 16) + 16, (byte) biome);
-+        } else {
-+          Arrays.fill((int[]) biomes, s * 16 * 4, (s * 16 * 4) + 64, biome);
-+        }
-+      }
-+    }
-+    return biomes;
-+  }
-+
-+  private int getInitialDataSize(ProtocolVersion version) {
-+    if (version.isBefore(ProtocolVersion.MINECRAFT_1_13)) {
-+      return 256;
-+    }
-+    if (version.isBeforeOrEq(ProtocolVersion.MINECRAFT_1_14_4)) {
-+      return 256 * 4;
-+    }
-+    return 0;
-+  }
-+
-+  private void write17(ByteBuf out, ByteBuf data) {
-+    out.writeShort(0); //Extended bitmask
-+
-+    byte[] uncompressed = new byte[data.readableBytes()];
-+    data.readBytes(uncompressed);
-+    ByteBuf compressed = Unpooled.buffer();
-+    Deflater deflater = new Deflater(9);
-+    deflater.setInput(uncompressed);
-+    deflater.finish();
-+    byte[] buffer = new byte[1024];
-+    while (!deflater.finished()) {
-+      int count = deflater.deflate(buffer);
-+      compressed.writeBytes(buffer, 0, count);
-+    }
-+    deflater.end();
-+    out.writeInt(compressed.readableBytes()); // compressed size
-+    out.writeBytes(compressed);
-+    compressed.release();
-+  }
 +}
 diff --git a/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/ChunkData.java b/proxy/src/main/java/ru/leymooo/botfilter/protocol/packet/world/ChunkData.java
 new file mode 100644

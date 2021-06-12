@@ -1,14 +1,14 @@
-From f7a5aabb95a78f2d00af3403130020c1ab68b4c3 Mon Sep 17 00:00:00 2001
+From 432189b2cd66a1c158abb1aa0984580b70224c1b Mon Sep 17 00:00:00 2001
 From: Leymooo <vjatseslav.maspanov@gmail.com>
 Date: Sat, 3 Apr 2021 15:42:27 +0300
 Subject: [PATCH] Global ip rate limiter
 
 
 diff --git a/api/src/main/java/com/velocitypowered/api/proxy/config/ProxyConfig.java b/api/src/main/java/com/velocitypowered/api/proxy/config/ProxyConfig.java
-index 0fa124f7..eaf0ff42 100644
+index 360d2ba5..262e21bd 100644
 --- a/api/src/main/java/com/velocitypowered/api/proxy/config/ProxyConfig.java
 +++ b/api/src/main/java/com/velocitypowered/api/proxy/config/ProxyConfig.java
-@@ -130,6 +130,13 @@ public interface ProxyConfig {
+@@ -121,6 +121,13 @@ public interface ProxyConfig {
     */
    int getLoginRatelimit();
  
@@ -23,10 +23,10 @@ index 0fa124f7..eaf0ff42 100644
     * Get the proxy favicon shown in the tablist.
     *
 diff --git a/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java b/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java
-index 6f0a242d..0d005726 100644
+index 0aa865a5..d087d9c8 100644
 --- a/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java
 +++ b/proxy/src/main/java/com/velocitypowered/proxy/VelocityServer.java
-@@ -223,7 +223,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
+@@ -210,7 +210,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
        servers.register(new ServerInfo(entry.getKey(), AddressUtil.parseAddress(entry.getValue())));
      }
  
@@ -36,7 +36,7 @@ index 6f0a242d..0d005726 100644
      loadPlugins();
  
      // Go ahead and fire the proxy initialization event. We block since plugins should have a chance
-@@ -397,7 +398,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
+@@ -384,7 +385,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
            newConfiguration.getQueryPort());
      }
  
@@ -46,7 +46,7 @@ index 6f0a242d..0d005726 100644
      this.configuration = newConfiguration;
      eventManager.fireAndForget(new ProxyReloadEvent());
      return true;
-@@ -524,7 +526,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
+@@ -511,7 +513,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
      return !(connectionsByName.containsKey(lowerName)
          || connectionsByUuid.containsKey(connection.getUniqueId()));
    }
@@ -56,10 +56,10 @@ index 6f0a242d..0d005726 100644
     * Attempts to register the {@code connection} with the proxy.
     * @param connection the connection to register
 diff --git a/proxy/src/main/java/com/velocitypowered/proxy/config/VelocityConfiguration.java b/proxy/src/main/java/com/velocitypowered/proxy/config/VelocityConfiguration.java
-index 7775bff7..3b2c5dc7 100644
+index 9b6d06d7..dcc66b3a 100644
 --- a/proxy/src/main/java/com/velocitypowered/proxy/config/VelocityConfiguration.java
 +++ b/proxy/src/main/java/com/velocitypowered/proxy/config/VelocityConfiguration.java
-@@ -66,7 +66,7 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
+@@ -65,7 +65,7 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
  
    @Expose @Key("config-version") @Final
    @Comment("Config version. Do not change this")
@@ -68,7 +68,7 @@ index 7775bff7..3b2c5dc7 100644
  
    @Expose @Comment("What port should the proxy be bound to? By default,"
        + " we'll bind to all addresses on port 25565.")
-@@ -359,6 +359,12 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
+@@ -348,6 +348,12 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
      return advanced.getLoginRatelimit();
    }
  
@@ -81,7 +81,7 @@ index 7775bff7..3b2c5dc7 100644
    @Override
    public Optional<Favicon> getFavicon() {
      return Optional.ofNullable(favicon);
-@@ -448,11 +454,17 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
+@@ -437,11 +443,17 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
          .build();
  
      boolean exists = path.toFile().exists();
@@ -100,7 +100,7 @@ index 7775bff7..3b2c5dc7 100644
      }
      configuration.save();
      return configuration;
-@@ -473,7 +485,6 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
+@@ -462,7 +474,6 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
    }
  
    @Getter
@@ -108,7 +108,7 @@ index 7775bff7..3b2c5dc7 100644
    @ToString
    @NoArgsConstructor(access = AccessLevel.PRIVATE)
    private static class Servers implements ConfigurationSection {
-@@ -496,7 +507,6 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
+@@ -485,7 +496,6 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
    }
  
    @Getter
@@ -116,7 +116,7 @@ index 7775bff7..3b2c5dc7 100644
    @ToString
    @NoArgsConstructor(access = AccessLevel.PRIVATE)
    private static class Advanced implements ConfigurationSection {
-@@ -516,6 +526,10 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
+@@ -505,6 +515,10 @@ public class VelocityConfiguration extends Configuration implements ProxyConfig
          "By default, this is three seconds. Disable this by setting this to 0."})
      private int loginRatelimit = 3000;
  

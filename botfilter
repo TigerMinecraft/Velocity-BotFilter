@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 case "$1" in
-    "rb" | "rbp" | "rebuild")
+    "rb" | "rbp" | "rebuild" | "rp")
         scripts/rebuildPatches.sh || exit 1
     ;;
     "p" | "patch")
